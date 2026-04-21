@@ -1,0 +1,6 @@
+$env:DB_USERNAME = 'root'
+$env:DB_PASSWORD = 'replace-with-your-mysql-password'
+$env:JWT_SECRET = 'replace-with-a-long-random-local-secret'
+$env:DEEPSEEK_BASE_URL = 'https://openrouter.fans'
+$env:DEEPSEEK_MODEL = 'deepseek-chat'
+$env:DEEPSEEK_API_KEY = 'replace-with-your-api-key'

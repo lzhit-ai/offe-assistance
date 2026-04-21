@@ -1,0 +1,17 @@
+# Root workspace
+.vscode/
+tmp/
+
+# Local startup secrets
+scripts/start-backend.local.ps1
+
+# Backend
+backend/target/
+backend/uploads/
+backend/.env.local
+
+# Frontend
+getoffer/node_modules/
+getoffer/dist/
+getoffer/coverage/
+getoffer/.env.local
