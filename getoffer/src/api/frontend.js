@@ -77,6 +77,35 @@ export const authApi = {
   },
 }
 
+export const userApi = {
+  async updateProfile(data) {
+    const payload = await request({
+      url: '/api/v1/users/me/profile',
+      method: 'patch',
+      data,
+    })
+
+    return {
+      data: mapUserProfile(payload),
+    }
+  },
+
+  async uploadAvatar(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const payload = await request({
+      url: '/api/v1/users/me/avatar',
+      method: 'post',
+      data: formData,
+    })
+
+    return {
+      data: payload,
+    }
+  },
+}
+
 export const articleApi = {
   async getHot(params = {}) {
     const payload = await request({
