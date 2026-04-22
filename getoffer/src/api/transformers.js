@@ -64,6 +64,8 @@ export const mapPageResult = (pageResult = {}, mapper = (item) => item) => ({
 
 export const mapUserProfile = (profile = {}) => ({
   ...profile,
+  nickname: profile.nickname || '',
+  avatar: profile.avatar || '',
   registerTime: formatDate(profile.registerTime),
   stats: {
     articleCount: profile.stats?.articleCount || 0,

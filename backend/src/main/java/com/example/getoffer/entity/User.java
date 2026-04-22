@@ -21,6 +21,9 @@ public class User {
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
+    @Column(unique = true, length = 50)
+    private String nickname;
+
     @Column(nullable = false, length = 20)
     private String phone;
 
@@ -57,6 +60,14 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String getPhone() {
