@@ -6,6 +6,7 @@ public class UserProfileResponse {
 
     private Long id;
     private String username;
+    private String nickname;
     private String phone;
     private String email;
     private String avatar;
@@ -26,6 +27,14 @@ public class UserProfileResponse {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String getPhone() {

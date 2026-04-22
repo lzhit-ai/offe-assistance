@@ -1,6 +1,7 @@
 package com.example.getoffer.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -47,5 +48,23 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.list[0].title").value("MySQL 索引"))
                 .andExpect(jsonPath("$.data.total").value(1));
+    }
+
+    @Test
+    void updateProfileReturnsUpdatedNickname() throws Exception {
+        String token = TestAuthHelper.registerAndGetToken(mockMvc, "writer3", "13800138011", "123456");
+
+        mockMvc.perform(patch("/api/v1/users/me/profile")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nickname": "new_name"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.username").value("writer3"))
+                .andExpect(jsonPath("$.data.nickname").value("new_name"));
     }
 }

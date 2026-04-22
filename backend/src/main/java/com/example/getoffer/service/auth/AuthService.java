@@ -89,6 +89,7 @@ public class AuthService {
         UserProfileResponse response = new UserProfileResponse();
         response.setId(user.getId());
         response.setUsername(user.getUsername());
+        response.setNickname(user.getNickname());
         response.setPhone(user.getPhone());
         response.setEmail(user.getEmail());
         response.setAvatar(user.getAvatar());
