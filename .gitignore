@@ -1,6 +1,7 @@
 # Root workspace
 .vscode/
 tmp/
+.worktrees/
 
 # Local startup secrets
 scripts/start-backend.local.ps1
