@@ -2,16 +2,20 @@ package com.example.getoffer.controller;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.getoffer.common.ApiResponse;
 import com.example.getoffer.common.PageResult;
 import com.example.getoffer.dto.article.ArticleSummaryResponse;
 import com.example.getoffer.dto.auth.UserProfileResponse;
+import com.example.getoffer.dto.user.AvatarUploadResponse;
 import com.example.getoffer.dto.user.UpdateProfileRequest;
 import com.example.getoffer.service.article.ArticleService;
 import com.example.getoffer.service.user.UserProfileService;
@@ -40,5 +44,11 @@ public class UserController {
     public ApiResponse<UserProfileResponse> updateProfile(@RequestBody UpdateProfileRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return ApiResponse.success(userProfileService.updateProfile(username, request));
+    }
+
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<AvatarUploadResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ApiResponse.success(userProfileService.uploadAvatar(username, file));
     }
 }
