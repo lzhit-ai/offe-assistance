@@ -17,7 +17,7 @@
         class="nav-menu"
       >
         <el-menu-item index="/">首页</el-menu-item>
-        <el-menu-item index="/articles/tech">八股文</el-menu-item>
+        <el-menu-item index="/articles/tech">八股题</el-menu-item>
         <el-menu-item index="/articles/interview">面试经历</el-menu-item>
         <el-menu-item index="/favorites">收藏</el-menu-item>
         <el-menu-item index="/ai">AI 助手</el-menu-item>
@@ -36,14 +36,14 @@
         <el-dropdown v-else trigger="click">
           <div class="user-avatar-wrapper">
             <el-avatar :size="36" :src="userAvatar" class="user-avatar">
-              {{ userStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+              {{ avatarFallback }}
             </el-avatar>
             <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
           </div>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item disabled>
-                {{ userStore.user?.username || '用户' }}
+                {{ displayName }}
               </el-dropdown-item>
               <el-dropdown-item divided @click="goToProfile">个人中心</el-dropdown-item>
               <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
@@ -70,6 +70,7 @@ import LoginModal from './LoginModal.vue'
 import { authApi } from '@/api/frontend'
 import { useUserStore } from '@/stores/admin'
 import { NAVBAR_THRESHOLD, getNavbarPhase } from '@/utils/navbar-visibility'
+import { getAvatarFallback, getDisplayName } from '@/utils/user-profile'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,7 +193,9 @@ const activeMenu = computed(() => {
   return '/'
 })
 
-const userAvatar = computed(() => '')
+const userAvatar = computed(() => userStore.user?.avatar || '')
+const displayName = computed(() => getDisplayName(userStore.user))
+const avatarFallback = computed(() => getAvatarFallback(userStore.user))
 
 const showLoginModal = (isLogin) => {
   isLoginModal.value = isLogin
