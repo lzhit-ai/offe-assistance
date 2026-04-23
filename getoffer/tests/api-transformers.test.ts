@@ -6,7 +6,7 @@ import {
   mapArticle,
   mapPageResult,
   mapUserProfile,
-} from '../src/api/transformers.js'
+} from '../src/api/transformers.ts'
 
 test('mapArticle normalizes backend article fields for the current UI', () => {
   const mapped = mapArticle({

@@ -1,4 +1,6 @@
 import axios from 'axios'
+import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+
 import { handleUnauthorizedSession } from '@/auth/session'
 
 const http = axios.create({
@@ -6,19 +8,23 @@ const http = axios.create({
   timeout: 10000,
 })
 
-http.interceptors.request.use((config) => {
+http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token')
 
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    if (typeof config.headers.set === 'function') {
+      config.headers.set('Authorization', `Bearer ${token}`)
+    } else {
+      ;(config.headers as unknown as Record<string, string>).Authorization = `Bearer ${token}`
+    }
   }
 
   return config
 })
 
 http.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response: AxiosResponse) => response,
+  (error: AxiosError<{ message?: string; error?: string }>) => {
     const message =
       error.response?.data?.message ||
       error.response?.data?.error ||

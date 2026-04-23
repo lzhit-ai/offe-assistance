@@ -70,11 +70,12 @@ import LoginModal from './LoginModal.vue'
 import { authApi } from '@/api/frontend'
 import { useUserStore } from '@/stores/admin'
 import { NAVBAR_THRESHOLD, getNavbarPhase } from '@/utils/navbar-visibility'
-import { getAvatarFallback, getDisplayName } from '@/utils/user-profile'
+import { getAvatarFallback, getDisplayName, resolveAvatarUrl } from '@/utils/user-profile'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const ANIMATION_DURATION_MS = 320
 
@@ -193,7 +194,7 @@ const activeMenu = computed(() => {
   return '/'
 })
 
-const userAvatar = computed(() => userStore.user?.avatar || '')
+const userAvatar = computed(() => resolveAvatarUrl(userStore.user?.avatar || '', apiBaseUrl))
 const displayName = computed(() => getDisplayName(userStore.user))
 const avatarFallback = computed(() => getAvatarFallback(userStore.user))
 

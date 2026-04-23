@@ -4,10 +4,11 @@ import assert from 'node:assert/strict'
 import {
   getDisplayName,
   getAvatarFallback,
+  resolveAvatarUrl,
   normalizeNicknameInput,
   validateNickname,
   isAcceptedAvatarFile,
-} from '../src/utils/user-profile.js'
+} from '../src/utils/user-profile.ts'
 
 test('getDisplayName prefers nickname over username', () => {
   assert.equal(getDisplayName({ username: 'login_name', nickname: 'display_name' }), 'display_name')
@@ -21,6 +22,20 @@ test('getDisplayName falls back to 用户 when nickname and username are absent'
 test('getAvatarFallback uses the first visible character', () => {
   assert.equal(getAvatarFallback({ username: 'login_name', nickname: 'display_name' }), 'D')
   assert.equal(getAvatarFallback({ username: 'login_name', nickname: '' }), 'L')
+})
+
+test('resolveAvatarUrl prefixes relative avatar paths with the api base url', () => {
+  assert.equal(
+    resolveAvatarUrl('/uploads/avatars/demo.png', 'http://localhost:8080'),
+    'http://localhost:8080/uploads/avatars/demo.png',
+  )
+})
+
+test('resolveAvatarUrl keeps absolute avatar urls unchanged', () => {
+  assert.equal(
+    resolveAvatarUrl('https://cdn.example.com/avatar.png', 'http://localhost:8080'),
+    'https://cdn.example.com/avatar.png',
+  )
 })
 
 test('normalizeNicknameInput trims surrounding whitespace', () => {

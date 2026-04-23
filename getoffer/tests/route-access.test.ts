@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { resolveRouteAccess } from '../src/router/route-access.js'
+import { resolveRouteAccess } from '../src/router/route-access.ts'
 
 test('resolveRouteAccess redirects guests away from protected routes', () => {
   const redirect = resolveRouteAccess(

@@ -11,13 +11,17 @@
             class="avatar-upload"
             :show-file-list="false"
             :auto-upload="false"
-            :before-upload="handleAvatarBeforeUpload"
+            accept="image/*"
+            :on-change="handleAvatarChange"
           >
             <el-button size="small" :loading="avatarUploading">更换头像</el-button>
           </el-upload>
         </div>
         <div class="profile-info">
-          <h2>{{ displayName }}</h2>
+          <div class="profile-name-row">
+            <h2>{{ displayName }}</h2>
+            <el-button text type="primary" @click="openInfoTab">编辑昵称</el-button>
+          </div>
           <p class="profile-email">{{ userInfo.email || '未设置邮箱' }}</p>
           <div class="profile-stats">
             <div class="stat-item">
@@ -112,6 +116,7 @@ import {
   getDisplayName,
   isAcceptedAvatarFile,
   normalizeNicknameInput,
+  resolveAvatarUrl,
   validateNickname,
 } from '@/utils/user-profile'
 
@@ -131,6 +136,7 @@ const buildUserInfo = (profile = {}) => ({
 
 const router = useRouter()
 const userStore = useUserStore()
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const activeTab = ref('articles')
 const loading = ref(false)
 const nicknameSaving = ref(false)
@@ -150,7 +156,7 @@ const pagination = ref({
   total: 0,
 })
 
-const userAvatar = computed(() => userInfo.value.avatar || '')
+const userAvatar = computed(() => resolveAvatarUrl(userInfo.value.avatar, apiBaseUrl))
 const displayName = computed(() => getDisplayName(userInfo.value))
 const avatarFallback = computed(() => getAvatarFallback(userInfo.value))
 
@@ -163,6 +169,10 @@ const applyProfile = (profile) => {
 
 const goToUpload = () => {
   router.push('/upload')
+}
+
+const openInfoTab = () => {
+  activeTab.value = 'info'
 }
 
 const saveNickname = async () => {
@@ -189,12 +199,19 @@ const saveNickname = async () => {
   }
 }
 
-const handleAvatarBeforeUpload = async (file) => {
+const handleAvatarChange = async (uploadFile) => {
+  const file = uploadFile?.raw || uploadFile
+
+  if (!file) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+
   const validation = isAcceptedAvatarFile(file)
 
   if (!validation.valid) {
     ElMessage.error(validation.message)
-    return false
+    return
   }
 
   avatarUploading.value = true
@@ -210,8 +227,6 @@ const handleAvatarBeforeUpload = async (file) => {
   } finally {
     avatarUploading.value = false
   }
-
-  return false
 }
 
 const loadProfile = async (page = currentPage.value) => {
@@ -286,8 +301,15 @@ onMounted(() => {
   justify-content: center;
 }
 
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .profile-info h2 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 24px;
   font-weight: 600;
   color: #1e293b;
@@ -379,6 +401,11 @@ onMounted(() => {
 
   .profile-stats {
     justify-content: center;
+  }
+
+  .profile-name-row {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 
   .article-list {

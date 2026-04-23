@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -103,5 +105,43 @@ class AiControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+    }
+
+    @Test
+    void streamEndpointReturnsSseErrorEventWithoutBreakingTheHttpResponse() throws Exception {
+        String token = TestAuthHelper.registerAndGetToken(mockMvc, "ai_user_3", "13800138113", "123456");
+        String createResponse = mockMvc.perform(post("/api/v1/ai/sessions")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "错误流测试"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String sessionId = JsonTestUtils.readJsonPath(createResponse, "$.data.id").toString();
+
+        MvcResult result = mockMvc.perform(post("/api/v1/ai/sessions/" + sessionId + "/messages/stream")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "解释事件循环"
+                                }
+                                """))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        result.getAsyncResult();
+
+        org.springframework.mock.web.MockHttpServletResponse response = result.getResponse();
+        org.junit.jupiter.api.Assertions.assertEquals(200, response.getStatus());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                response.getContentType() != null && response.getContentType().contains(MediaType.TEXT_EVENT_STREAM_VALUE));
+        org.junit.jupiter.api.Assertions.assertTrue(response.getContentAsString().contains("event:error"));
     }
 }

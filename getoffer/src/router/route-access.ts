@@ -13,7 +13,19 @@ export interface RouteAccessRedirect {
   }
 }
 
-export function resolveRouteAccess(
+export const resolveRouteAccess = (
   to: RouteAccessInput,
   isLoggedIn: boolean,
-): RouteAccessRedirect | null
+): RouteAccessRedirect | null => {
+  if (isLoggedIn || !to?.meta?.requiresAuth) {
+    return null
+  }
+
+  return {
+    path: '/',
+    query: {
+      login: '1',
+      redirect: to?.fullPath || '/',
+    },
+  }
+}

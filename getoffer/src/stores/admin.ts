@@ -2,7 +2,9 @@ import { defineStore } from 'pinia'
 
 const USER_STORAGE_KEY = 'user'
 
-const readStoredUser = () => {
+type StoredUser = Record<string, unknown>
+
+const readStoredUser = (): StoredUser | null => {
   const raw = localStorage.getItem(USER_STORAGE_KEY)
 
   if (!raw) {
@@ -10,7 +12,7 @@ const readStoredUser = () => {
   }
 
   try {
-    return JSON.parse(raw)
+    return JSON.parse(raw) as StoredUser
   } catch {
     localStorage.removeItem(USER_STORAGE_KEY)
     return null
@@ -19,20 +21,20 @@ const readStoredUser = () => {
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    user: readStoredUser(),
+    user: readStoredUser() as StoredUser | null,
     token: localStorage.getItem('token') || '',
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
   },
   actions: {
-    login(token, user) {
+    login(token: string, user: StoredUser) {
       this.token = token
       this.user = user
       localStorage.setItem('token', token)
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
     },
-    setUser(user) {
+    setUser(user: StoredUser) {
       this.user = user
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
     },

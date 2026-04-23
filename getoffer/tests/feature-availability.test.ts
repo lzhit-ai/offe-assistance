@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { getFeatureAvailability } from '../src/features/availability.js'
+import { getFeatureAvailability } from '../src/features/availability.ts'
 
 test('getFeatureAvailability marks AI assistant as enabled', () => {
   assert.deepEqual(getFeatureAvailability('aiAssistant'), {

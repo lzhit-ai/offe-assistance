@@ -122,7 +122,7 @@ public class AiChatService {
             emitter.complete();
         } catch (Exception ex) {
             sendEvent(emitter, "error", ex.getMessage());
-            emitter.completeWithError(ex);
+            emitter.complete();
         }
     }
 

@@ -1,3 +1,5 @@
+import type { AxiosRequestConfig } from 'axios'
+
 import http from './http'
 import {
   mapAiMessage,
@@ -8,7 +10,9 @@ import {
   mapUserProfile,
 } from './transformers'
 
-const request = async (config) => {
+type AnyRecord = Record<string, any>
+
+const request = async (config: AxiosRequestConfig): Promise<any> => {
   const response = await http(config)
   const payload = response.data
 
@@ -19,7 +23,7 @@ const request = async (config) => {
   return payload.data
 }
 
-const pickArticlePayload = (data = {}) => ({
+const pickArticlePayload = (data: AnyRecord = {}): AnyRecord => ({
   title: data.title,
   category: data.category,
   type: data.type,
@@ -28,7 +32,7 @@ const pickArticlePayload = (data = {}) => ({
 })
 
 export const authApi = {
-  async register(data) {
+  async register(data: AnyRecord) {
     const payload = await request({
       url: '/api/v1/auth/register',
       method: 'post',
@@ -43,7 +47,7 @@ export const authApi = {
     }
   },
 
-  async login(data) {
+  async login(data: AnyRecord) {
     const payload = await request({
       url: '/api/v1/auth/login',
       method: 'post',
@@ -78,7 +82,7 @@ export const authApi = {
 }
 
 export const userApi = {
-  async updateProfile(data) {
+  async updateProfile(data: AnyRecord) {
     const payload = await request({
       url: '/api/v1/users/me/profile',
       method: 'patch',
@@ -90,7 +94,7 @@ export const userApi = {
     }
   },
 
-  async uploadAvatar(file) {
+  async uploadAvatar(file: File | Blob) {
     const formData = new FormData()
     formData.append('file', file)
 
@@ -107,7 +111,7 @@ export const userApi = {
 }
 
 export const articleApi = {
-  async getHot(params = {}) {
+  async getHot(params: AnyRecord = {}) {
     const payload = await request({
       url: '/api/v1/articles/hot',
       method: 'get',
@@ -122,7 +126,7 @@ export const articleApi = {
     }
   },
 
-  async getList(params = {}) {
+  async getList(params: AnyRecord = {}) {
     const payload = await request({
       url: '/api/v1/articles',
       method: 'get',
@@ -136,7 +140,7 @@ export const articleApi = {
     }
   },
 
-  async getDetail(id) {
+  async getDetail(id: number | string) {
     const payload = await request({
       url: `/api/v1/articles/${id}`,
       method: 'get',
@@ -147,7 +151,7 @@ export const articleApi = {
     }
   },
 
-  async create(data) {
+  async create(data: AnyRecord) {
     const payload = await request({
       url: '/api/v1/articles',
       method: 'post',
@@ -159,7 +163,7 @@ export const articleApi = {
     }
   },
 
-  async update(articleId, data) {
+  async update(articleId: number | string, data: AnyRecord) {
     const id = articleId || data?.id
     const payload = await request({
       url: `/api/v1/articles/${id}`,
@@ -172,7 +176,7 @@ export const articleApi = {
     }
   },
 
-  async getMine(params = {}) {
+  async getMine(params: AnyRecord = {}) {
     const payload = await request({
       url: '/api/v1/users/me/articles',
       method: 'get',
@@ -192,7 +196,7 @@ export const articleApi = {
 }
 
 export const favoriteApi = {
-  async add(articleId) {
+  async add(articleId: number | string) {
     const payload = await request({
       url: `/api/v1/articles/${articleId}/favorite`,
       method: 'post',
@@ -203,7 +207,7 @@ export const favoriteApi = {
     }
   },
 
-  async remove(articleId) {
+  async remove(articleId: number | string) {
     const payload = await request({
       url: `/api/v1/articles/${articleId}/favorite`,
       method: 'delete',
@@ -214,7 +218,7 @@ export const favoriteApi = {
     }
   },
 
-  async getFavorites(params = {}) {
+  async getFavorites(params: AnyRecord = {}) {
     const payload = await request({
       url: '/api/v1/users/me/favorites',
       method: 'get',
@@ -258,7 +262,7 @@ export const metadataApi = {
 }
 
 export const aiApi = {
-  async getSessions(params = {}) {
+  async getSessions(params: AnyRecord = {}) {
     const payload = await request({
       url: '/api/v1/ai/sessions',
       method: 'get',
@@ -275,7 +279,7 @@ export const aiApi = {
     }
   },
 
-  async createSession(data = {}) {
+  async createSession(data: AnyRecord = {}) {
     const payload = await request({
       url: '/api/v1/ai/sessions',
       method: 'post',
@@ -289,7 +293,7 @@ export const aiApi = {
     }
   },
 
-  async getMessages(sessionId, params = {}) {
+  async getMessages(sessionId: number | string, params: AnyRecord = {}) {
     const payload = await request({
       url: `/api/v1/ai/sessions/${sessionId}/messages`,
       method: 'get',
@@ -306,7 +310,7 @@ export const aiApi = {
     }
   },
 
-  async deleteSession(sessionId) {
+  async deleteSession(sessionId: number | string) {
     const payload = await request({
       url: `/api/v1/ai/sessions/${sessionId}`,
       method: 'delete',

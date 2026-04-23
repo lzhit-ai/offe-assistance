@@ -5,7 +5,7 @@ import {
   NAVBAR_THRESHOLD,
   createNavbarVisibilityState,
   getNavbarPhase,
-} from '../src/utils/navbar-visibility.js'
+} from '../src/utils/navbar-visibility.ts'
 
 test('navbar threshold remains at 240px', () => {
   assert.equal(NAVBAR_THRESHOLD, 240)

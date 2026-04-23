@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { AUTH_EXPIRED_EVENT, handleUnauthorizedSession } from '../src/auth/session.js'
+import { AUTH_EXPIRED_EVENT, handleUnauthorizedSession } from '../src/auth/session.ts'
 
 test('handleUnauthorizedSession clears stored credentials and emits an auth-expired event', () => {
   const removedKeys = []

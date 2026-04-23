@@ -2,10 +2,34 @@ const DEFAULT_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
   'http://localhost:8080'
 
-const readStoredToken = () =>
+type SseEventPayload = {
+  event: string
+  data: unknown
+}
+
+type SseEventHandler = (event: SseEventPayload) => void
+
+type StreamAiMessageOptions = {
+  sessionId: number | string
+  content: string
+  token?: string
+  signal?: AbortSignal
+  baseURL?: string
+  fetchImpl?: typeof fetch
+  onChunk?: (chunk: string) => void
+  onDone?: (payload: unknown) => void
+  onError?: (error: Error) => void
+}
+
+type SseParser = {
+  push: (chunk: string) => void
+  flush: () => void
+}
+
+const readStoredToken = (): string =>
   (typeof localStorage !== 'undefined' && localStorage.getItem('token')) || ''
 
-const safeParseJson = (value) => {
+const safeParseJson = (value: unknown): unknown => {
   if (typeof value !== 'string') {
     return value
   }
@@ -22,13 +46,13 @@ const safeParseJson = (value) => {
   }
 }
 
-const resolveBaseUrl = (baseURL = DEFAULT_BASE_URL) => baseURL.replace(/\/$/, '')
+const resolveBaseUrl = (baseURL = DEFAULT_BASE_URL): string => baseURL.replace(/\/$/, '')
 
-const readErrorMessage = async (response) => {
+const readErrorMessage = async (response: Response): Promise<string> => {
   const contentType = response.headers.get('content-type') || ''
 
   if (contentType.includes('application/json')) {
-    const payload = await response.json()
+    const payload = (await response.json()) as { message?: string; error?: string }
     return payload?.message || payload?.error || 'AI 请求失败'
   }
 
@@ -36,11 +60,11 @@ const readErrorMessage = async (response) => {
   return text || 'AI 请求失败'
 }
 
-const emitSseEvent = (rawEvent, onEvent) => {
+const emitSseEvent = (rawEvent: string, onEvent: SseEventHandler): void => {
   const normalized = rawEvent.replace(/\r/g, '')
   const lines = normalized.split('\n')
   let event = 'message'
-  const dataLines = []
+  const dataLines: string[] = []
 
   for (const line of lines) {
     if (!line || line.startsWith(':')) {
@@ -67,7 +91,7 @@ const emitSseEvent = (rawEvent, onEvent) => {
   })
 }
 
-export const createSseParser = (onEvent) => {
+export const createSseParser = (onEvent: SseEventHandler): SseParser => {
   let buffer = ''
 
   const drain = () => {
@@ -82,7 +106,7 @@ export const createSseParser = (onEvent) => {
   }
 
   return {
-    push(chunk) {
+    push(chunk: string) {
       buffer += chunk.replace(/\r\n/g, '\n')
       drain()
     },
@@ -106,7 +130,7 @@ export const streamAiMessage = async ({
   onChunk,
   onDone,
   onError,
-}) => {
+}: StreamAiMessageOptions): Promise<unknown> => {
   const response = await fetchImpl(
     `${resolveBaseUrl(baseURL)}/api/v1/ai/sessions/${sessionId}/messages/stream`,
     {
@@ -131,10 +155,11 @@ export const streamAiMessage = async ({
 
   const reader = response.body.getReader()
   const decoder = new TextDecoder('utf-8')
-  let streamError = null
-  let donePayload = null
+  let streamError: Error | null = null
+  let donePayload: unknown = null
+  let streamDone = false
 
-  const parser = createSseParser(({ event, data }) => {
+  const parser = createSseParser(({ event, data }: SseEventPayload) => {
     if (event === 'chunk') {
       onChunk?.(String(data ?? ''))
       return
@@ -142,12 +167,15 @@ export const streamAiMessage = async ({
 
     if (event === 'done') {
       donePayload = data
+      streamDone = true
       onDone?.(data)
       return
     }
 
     if (event === 'error') {
-      streamError = new Error(typeof data === 'string' ? data : data?.message || 'AI 回复失败')
+      streamError = new Error(
+        typeof data === 'string' ? data : (data as { message?: string })?.message || 'AI 回复失败',
+      )
       onError?.(streamError)
     }
   })
@@ -164,9 +192,16 @@ export const streamAiMessage = async ({
     if (streamError) {
       throw streamError
     }
+
+    if (streamDone) {
+      await reader.cancel()
+      break
+    }
   }
 
-  parser.flush()
+  if (!streamDone) {
+    parser.flush()
+  }
 
   if (streamError) {
     throw streamError

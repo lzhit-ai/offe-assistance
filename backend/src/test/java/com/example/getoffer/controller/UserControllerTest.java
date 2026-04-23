@@ -3,8 +3,10 @@ package com.example.getoffer.controller;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,6 +76,16 @@ class UserControllerTest {
     }
 
     @Test
+    void updateProfilePreflightAllowsPatchFromFrontendOrigin() throws Exception {
+        mockMvc.perform(options("/api/v1/users/me/profile")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "PATCH")
+                        .header("Access-Control-Request-Headers", "content-type,authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
+    @Test
     void uploadAvatarStoresImageAndReturnsAvatarPath() throws Exception {
         String token = TestAuthHelper.registerAndGetToken(mockMvc, "avatar_user", "13800138012", "123456");
         MockMultipartFile file = new MockMultipartFile(
@@ -82,12 +94,27 @@ class UserControllerTest {
                 MediaType.IMAGE_PNG_VALUE,
                 "fake-image-content".getBytes(StandardCharsets.UTF_8));
 
-        mockMvc.perform(multipart("/api/v1/users/me/avatar")
+        String response = mockMvc.perform(multipart("/api/v1/users/me/avatar")
                         .file(file)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.avatar").value(startsWith("/uploads/avatars/")));
+                .andExpect(jsonPath("$.data.avatar").value(startsWith("/uploads/avatars/")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String avatarPath = JsonTestUtils.readJsonPath(response, "$.data.avatar").toString();
+
+        mockMvc.perform(get(avatarPath))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void missingAvatarReturnsNotFound() throws Exception {
+        mockMvc.perform(get("/uploads/avatars/not-found.png"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(40404));
     }
 
     @Test

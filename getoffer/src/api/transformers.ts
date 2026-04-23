@@ -1,4 +1,25 @@
-const formatDate = (value) => {
+type AnyRecord = Record<string, any>
+
+type PageResult<T> = {
+  list: T[]
+  page: number
+  pageSize: number
+  total: number
+  hasMore: boolean
+}
+
+type ArticleListQueryInput = {
+  page?: number
+  pageSize?: number
+  type?: string | number
+  category?: string
+  tag?: string
+  keyword?: string
+  authorId?: string | number
+  sort?: string
+}
+
+const formatDate = (value: string | number | Date | null | undefined): string => {
   if (!value) {
     return ''
   }
@@ -11,7 +32,7 @@ const formatDate = (value) => {
   return date.toISOString().slice(0, 10)
 }
 
-const formatDateTime = (value) => {
+const formatDateTime = (value: unknown): string => {
   if (!value || typeof value !== 'string') {
     return ''
   }
@@ -19,7 +40,7 @@ const formatDateTime = (value) => {
   return value.replace('T', ' ').slice(0, 16)
 }
 
-const toArticleType = (type) => {
+const toArticleType = (type: string | number | undefined): number | undefined => {
   if (type === 'tech') {
     return 1
   }
@@ -36,7 +57,7 @@ const toArticleType = (type) => {
   return undefined
 }
 
-export const mapArticle = (article = {}) => ({
+export const mapArticle = (article: AnyRecord = {}): AnyRecord => ({
   id: article.id,
   title: article.title || '',
   author: article.author?.username || article.author || '匿名用户',
@@ -54,7 +75,10 @@ export const mapArticle = (article = {}) => ({
   canEdit: Boolean(article.canEdit),
 })
 
-export const mapPageResult = (pageResult = {}, mapper = (item) => item) => ({
+export const mapPageResult = <T>(
+  pageResult: AnyRecord = {},
+  mapper: (item: AnyRecord) => T = (item) => item as T,
+): PageResult<T> => ({
   list: Array.isArray(pageResult.list) ? pageResult.list.map(mapper) : [],
   page: pageResult.page || 1,
   pageSize: pageResult.pageSize || 10,
@@ -62,7 +86,7 @@ export const mapPageResult = (pageResult = {}, mapper = (item) => item) => ({
   hasMore: Boolean(pageResult.hasMore),
 })
 
-export const mapUserProfile = (profile = {}) => ({
+export const mapUserProfile = (profile: AnyRecord = {}): AnyRecord => ({
   ...profile,
   nickname: profile.nickname || '',
   avatar: profile.avatar || '',
@@ -74,7 +98,7 @@ export const mapUserProfile = (profile = {}) => ({
   },
 })
 
-export const mapAiSession = (session = {}) => ({
+export const mapAiSession = (session: AnyRecord = {}): AnyRecord => ({
   id: session.id,
   title: session.title || '新对话',
   createdAt: formatDateTime(session.createdAt),
@@ -82,7 +106,7 @@ export const mapAiSession = (session = {}) => ({
   lastMessagePreview: session.lastMessagePreview || '',
 })
 
-export const mapAiMessage = (message = {}) => ({
+export const mapAiMessage = (message: AnyRecord = {}): AnyRecord => ({
   id: message.id,
   role: message.role || 'assistant',
   content: message.content || '',
@@ -99,8 +123,8 @@ export const buildArticleListQuery = ({
   keyword,
   authorId,
   sort,
-} = {}) => {
-  const query = {
+}: ArticleListQueryInput = {}): Record<string, string | number> => {
+  const query: Record<string, string | number> = {
     page,
     pageSize,
   }

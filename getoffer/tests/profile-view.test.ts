@@ -1,0 +1,19 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const profileViewSource = readFileSync(
+  resolve(process.cwd(), 'src/views/Profile.vue'),
+  'utf8',
+)
+
+test('profile view uploads avatar from file selection change', () => {
+  assert.match(profileViewSource, /:on-change="handleAvatarChange"/)
+  assert.doesNotMatch(profileViewSource, /:before-upload="handleAvatarBeforeUpload"/)
+})
+
+test('profile view exposes a direct nickname edit entry in the header', () => {
+  assert.match(profileViewSource, /@click="openInfoTab"/)
+  assert.match(profileViewSource, /编辑昵称/)
+})

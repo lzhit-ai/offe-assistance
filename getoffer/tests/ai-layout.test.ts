@@ -5,7 +5,7 @@ import {
   AI_PAGE_GUTTER,
   AI_PANEL_MIN_HEIGHT,
   AI_SHELL_HEIGHT,
-} from '../src/views/ai-layout.js'
+} from '../src/views/ai-layout.ts'
 
 test('ai layout tokens keep the page full-width and fixed-height', () => {
   assert.equal(AI_PAGE_GUTTER, 0)
