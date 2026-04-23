@@ -21,7 +21,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, JpaSpec
 
     long countByAuthorId(Long authorId);
 
-    List<Article> findTop5ByOrderByFavoriteCountDescViewCountDescCreatedAtDesc();
+    List<Article> findTop5ByStatusOrderByFavoriteCountDescViewCountDescCreatedAtDesc(String status);
 
     @Query("select a.category as name, count(a) as count from Article a group by a.category order by count(a) desc, a.category asc")
     List<CountProjection> findCategoryCounts();
