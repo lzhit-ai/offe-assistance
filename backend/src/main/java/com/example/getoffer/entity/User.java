@@ -33,6 +33,9 @@ public class User {
     @Column(length = 255)
     private String avatar;
 
+    @Column(nullable = false, length = 20)
+    private String role = "USER";
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -92,6 +95,14 @@ public class User {
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getPasswordHash() {

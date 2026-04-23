@@ -10,6 +10,7 @@ public class UserProfileResponse {
     private String phone;
     private String email;
     private String avatar;
+    private String role;
     private LocalDateTime registerTime;
     private UserStatsResponse stats;
 
@@ -59,6 +60,14 @@ public class UserProfileResponse {
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public LocalDateTime getRegisterTime() {

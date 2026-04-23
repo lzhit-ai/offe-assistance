@@ -12,6 +12,7 @@ public class ArticleSummaryResponse {
     private ArticleAuthorResponse author;
     private String category;
     private int type;
+    private String status;
     private List<String> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -59,6 +60,14 @@ public class ArticleSummaryResponse {
 
     public void setType(int type) {
         this.type = type;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public List<String> getTags() {

@@ -36,6 +36,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.accessToken").isString())
                 .andExpect(jsonPath("$.data.user.username").value("alice"))
+                .andExpect(jsonPath("$.data.user.role").value("USER"))
                 .andExpect(jsonPath("$.data.user.stats.articleCount").value(0));
     }
 
@@ -66,13 +67,15 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.user.username").value("bob"));
+                .andExpect(jsonPath("$.data.user.username").value("bob"))
+                .andExpect(jsonPath("$.data.user.role").value("USER"));
 
         mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.username").value("bob"))
+                .andExpect(jsonPath("$.data.role").value("USER"))
                 .andExpect(jsonPath("$.data.stats.favoriteCount").value(0));
     }
 }

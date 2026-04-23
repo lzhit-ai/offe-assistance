@@ -122,6 +122,7 @@ public class ArticleService {
         response.setAuthor(new ArticleAuthorResponse(article.getAuthor().getId(), article.getAuthor().getUsername()));
         response.setCategory(article.getCategory());
         response.setType(article.getType());
+        response.setStatus(article.getStatus());
         response.setTags(article.getTags().stream().map(tag -> tag.getName()).toList());
         response.setCreatedAt(article.getCreatedAt());
         response.setUpdatedAt(article.getUpdatedAt());
@@ -141,6 +142,7 @@ public class ArticleService {
         detail.setAuthor(summary.getAuthor());
         detail.setCategory(summary.getCategory());
         detail.setType(summary.getType());
+        detail.setStatus(summary.getStatus());
         detail.setTags(summary.getTags());
         detail.setCreatedAt(summary.getCreatedAt());
         detail.setUpdatedAt(summary.getUpdatedAt());

@@ -42,6 +42,7 @@ class ArticleControllerTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.title").value("Vue3 Composition API 详解"))
                 .andExpect(jsonPath("$.data.author.username").value("writer1"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
