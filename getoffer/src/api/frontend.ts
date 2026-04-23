@@ -2,18 +2,61 @@ import type { AxiosRequestConfig } from 'axios'
 
 import http from './http'
 import {
+  buildArticleListQuery,
+  mapAdminAiSession,
+  mapAdminArticle,
+  mapAdminDashboard,
+  mapAdminUser,
   mapAiMessage,
   mapAiSession,
-  buildArticleListQuery,
   mapArticle,
   mapPageResult,
   mapUserProfile,
+  type AdminAiSessionItem,
+  type AdminArticleItem,
+  type AdminDashboard,
+  type AdminUserItem,
+  type AiMessageItem,
+  type AiSessionItem,
+  type ArticleItem,
+  type MetadataItem,
+  type PageResult,
+  type UserProfile,
 } from './transformers'
 
-type AnyRecord = Record<string, any>
+interface ApiEnvelope<T> {
+  code: number
+  message?: string
+  data: T
+}
 
-const request = async (config: AxiosRequestConfig): Promise<any> => {
-  const response = await http(config)
+interface AuthPayload {
+  accessToken: string
+  user: UserProfile
+}
+
+interface ArticleDraft {
+  id?: number
+  title: string
+  category: string
+  type: number
+  tags: string[]
+  content: string
+}
+
+interface ListParams {
+  page?: number
+  pageSize?: number
+}
+
+interface AdminArticleQuery extends ListParams {
+  keyword?: string
+  category?: string
+  status?: string
+}
+
+const request = async <T>(config: AxiosRequestConfig): Promise<T> => {
+  const response = await http<ApiEnvelope<T>>(config)
   const payload = response.data
 
   if (payload?.code !== 0) {
@@ -23,7 +66,7 @@ const request = async (config: AxiosRequestConfig): Promise<any> => {
   return payload.data
 }
 
-const pickArticlePayload = (data: AnyRecord = {}): AnyRecord => ({
+const pickArticlePayload = (data: Partial<ArticleDraft> = {}) => ({
   title: data.title,
   category: data.category,
   type: data.type,
@@ -31,9 +74,20 @@ const pickArticlePayload = (data: AnyRecord = {}): AnyRecord => ({
   content: data.content,
 })
 
+const toPagedResult = <TInput, TOutput>(
+  payload: unknown,
+  mapper: (item: TInput) => TOutput,
+): { data: TOutput[]; pagination: PageResult<TOutput> } => {
+  const page = mapPageResult(payload as PageResult<TInput>, mapper)
+  return {
+    data: page.list,
+    pagination: page,
+  }
+}
+
 export const authApi = {
-  async register(data: AnyRecord) {
-    const payload = await request({
+  async register(data: Record<string, unknown>) {
+    const payload = await request<AuthPayload>({
       url: '/api/v1/auth/register',
       method: 'post',
       data,
@@ -47,8 +101,8 @@ export const authApi = {
     }
   },
 
-  async login(data: AnyRecord) {
-    const payload = await request({
+  async login(data: Record<string, unknown>) {
+    const payload = await request<AuthPayload>({
       url: '/api/v1/auth/login',
       method: 'post',
       data,
@@ -63,7 +117,7 @@ export const authApi = {
   },
 
   async me() {
-    const payload = await request({
+    const payload = await request<UserProfile>({
       url: '/api/v1/auth/me',
       method: 'get',
     })
@@ -74,7 +128,7 @@ export const authApi = {
   },
 
   async logout() {
-    return request({
+    return request<Record<string, unknown>>({
       url: '/api/v1/auth/logout',
       method: 'post',
     })
@@ -82,8 +136,8 @@ export const authApi = {
 }
 
 export const userApi = {
-  async updateProfile(data: AnyRecord) {
-    const payload = await request({
+  async updateProfile(data: { nickname: string }) {
+    const payload = await request<UserProfile>({
       url: '/api/v1/users/me/profile',
       method: 'patch',
       data,
@@ -94,11 +148,11 @@ export const userApi = {
     }
   },
 
-  async uploadAvatar(file: File | Blob) {
+  async uploadAvatar(file: File) {
     const formData = new FormData()
     formData.append('file', file)
 
-    const payload = await request({
+    const payload = await request<{ avatar: string }>({
       url: '/api/v1/users/me/avatar',
       method: 'post',
       data: formData,
@@ -111,8 +165,8 @@ export const userApi = {
 }
 
 export const articleApi = {
-  async getHot(params: AnyRecord = {}) {
-    const payload = await request({
+  async getHot(params: { limit?: number; type?: string | number } = {}) {
+    const payload = await request<ArticleItem[]>({
       url: '/api/v1/articles/hot',
       method: 'get',
       params: {
@@ -126,22 +180,27 @@ export const articleApi = {
     }
   },
 
-  async getList(params: AnyRecord = {}) {
-    const payload = await request({
+  async getList(
+    params: ListParams & {
+      type?: string | number
+      category?: string
+      tag?: string
+      keyword?: string
+      authorId?: number | string
+      sort?: string
+    } = {},
+  ) {
+    const payload = await request<PageResult<ArticleItem>>({
       url: '/api/v1/articles',
       method: 'get',
       params: buildArticleListQuery(params),
     })
-    const page = mapPageResult(payload, mapArticle)
 
-    return {
-      data: page.list,
-      pagination: page,
-    }
+    return toPagedResult(payload, mapArticle)
   },
 
-  async getDetail(id: number | string) {
-    const payload = await request({
+  async getDetail(id?: string | number | null) {
+    const payload = await request<ArticleItem>({
       url: `/api/v1/articles/${id}`,
       method: 'get',
     })
@@ -151,8 +210,8 @@ export const articleApi = {
     }
   },
 
-  async create(data: AnyRecord) {
-    const payload = await request({
+  async create(data: ArticleDraft) {
+    const payload = await request<ArticleItem>({
       url: '/api/v1/articles',
       method: 'post',
       data: pickArticlePayload(data),
@@ -163,9 +222,9 @@ export const articleApi = {
     }
   },
 
-  async update(articleId: number | string, data: AnyRecord) {
+  async update(articleId: number | string | undefined, data: Partial<ArticleDraft>) {
     const id = articleId || data?.id
-    const payload = await request({
+    const payload = await request<ArticleItem>({
       url: `/api/v1/articles/${id}`,
       method: 'put',
       data: pickArticlePayload(data),
@@ -176,8 +235,8 @@ export const articleApi = {
     }
   },
 
-  async getMine(params: AnyRecord = {}) {
-    const payload = await request({
+  async getMine(params: { page?: number; pageSize?: number; type?: string | number } = {}) {
+    const payload = await request<PageResult<ArticleItem>>({
       url: '/api/v1/users/me/articles',
       method: 'get',
       params: {
@@ -186,40 +245,32 @@ export const articleApi = {
         ...(params.type ? { type: params.type } : {}),
       },
     })
-    const page = mapPageResult(payload, mapArticle)
 
-    return {
-      data: page.list,
-      pagination: page,
-    }
+    return toPagedResult(payload, mapArticle)
   },
 }
 
 export const favoriteApi = {
-  async add(articleId: number | string) {
-    const payload = await request({
+  async add(articleId: number) {
+    const payload = await request<{ favoriteCount?: number }>({
       url: `/api/v1/articles/${articleId}/favorite`,
       method: 'post',
     })
 
-    return {
-      data: payload,
-    }
+    return { data: payload }
   },
 
-  async remove(articleId: number | string) {
-    const payload = await request({
+  async remove(articleId: number) {
+    const payload = await request<{ favoriteCount?: number }>({
       url: `/api/v1/articles/${articleId}/favorite`,
       method: 'delete',
     })
 
-    return {
-      data: payload,
-    }
+    return { data: payload }
   },
 
-  async getFavorites(params: AnyRecord = {}) {
-    const payload = await request({
+  async getFavorites(params: ListParams = {}) {
+    const payload = await request<PageResult<ArticleItem>>({
       url: '/api/v1/users/me/favorites',
       method: 'get',
       params: {
@@ -227,18 +278,14 @@ export const favoriteApi = {
         pageSize: params.pageSize || 20,
       },
     })
-    const page = mapPageResult(payload, mapArticle)
 
-    return {
-      data: page.list,
-      pagination: page,
-    }
+    return toPagedResult(payload, mapArticle)
   },
 }
 
 export const metadataApi = {
   async getCategories() {
-    const payload = await request({
+    const payload = await request<MetadataItem[]>({
       url: '/api/v1/metadata/categories',
       method: 'get',
     })
@@ -249,7 +296,7 @@ export const metadataApi = {
   },
 
   async getHotTags(limit = 10) {
-    const payload = await request({
+    const payload = await request<MetadataItem[]>({
       url: '/api/v1/metadata/tags/hot',
       method: 'get',
       params: { limit },
@@ -262,8 +309,8 @@ export const metadataApi = {
 }
 
 export const aiApi = {
-  async getSessions(params: AnyRecord = {}) {
-    const payload = await request({
+  async getSessions(params: ListParams = {}) {
+    const payload = await request<PageResult<AiSessionItem>>({
       url: '/api/v1/ai/sessions',
       method: 'get',
       params: {
@@ -271,16 +318,12 @@ export const aiApi = {
         pageSize: params.pageSize || 20,
       },
     })
-    const page = mapPageResult(payload, mapAiSession)
 
-    return {
-      data: page.list,
-      pagination: page,
-    }
+    return toPagedResult(payload, mapAiSession)
   },
 
-  async createSession(data: AnyRecord = {}) {
-    const payload = await request({
+  async createSession(data: { title?: string } = {}) {
+    const payload = await request<AiSessionItem>({
       url: '/api/v1/ai/sessions',
       method: 'post',
       data: {
@@ -293,8 +336,8 @@ export const aiApi = {
     }
   },
 
-  async getMessages(sessionId: number | string, params: AnyRecord = {}) {
-    const payload = await request({
+  async getMessages(sessionId: number, params: ListParams = {}) {
+    const payload = await request<PageResult<AiMessageItem>>({
       url: `/api/v1/ai/sessions/${sessionId}/messages`,
       method: 'get',
       params: {
@@ -302,22 +345,98 @@ export const aiApi = {
         pageSize: params.pageSize || 100,
       },
     })
-    const page = mapPageResult(payload, mapAiMessage)
 
-    return {
-      data: page.list,
-      pagination: page,
-    }
+    return toPagedResult(payload, mapAiMessage)
   },
 
-  async deleteSession(sessionId: number | string) {
-    const payload = await request({
+  async deleteSession(sessionId: number) {
+    const payload = await request<Record<string, unknown>>({
       url: `/api/v1/ai/sessions/${sessionId}`,
       method: 'delete',
     })
 
+    return { data: payload }
+  },
+}
+
+export const adminApi = {
+  async getDashboard() {
+    const payload = await request<AdminDashboard>({
+      url: '/api/v1/admin/dashboard',
+      method: 'get',
+    })
+
     return {
-      data: payload,
+      data: mapAdminDashboard(payload),
     }
+  },
+
+  async getUsers(params: ListParams = {}) {
+    const payload = await request<PageResult<AdminUserItem>>({
+      url: '/api/v1/admin/users',
+      method: 'get',
+      params: {
+        page: params.page || 1,
+        pageSize: params.pageSize || 10,
+      },
+    })
+
+    return toPagedResult(payload, mapAdminUser)
+  },
+
+  async getArticles(params: AdminArticleQuery = {}) {
+    const payload = await request<PageResult<AdminArticleItem>>({
+      url: '/api/v1/admin/articles',
+      method: 'get',
+      params: {
+        page: params.page || 1,
+        pageSize: params.pageSize || 10,
+        ...(params.keyword ? { keyword: params.keyword } : {}),
+        ...(params.category ? { category: params.category } : {}),
+        ...(params.status ? { status: params.status } : {}),
+      },
+    })
+
+    return toPagedResult(payload, mapAdminArticle)
+  },
+
+  async approveArticle(articleId: number) {
+    const payload = await request<AdminArticleItem>({
+      url: `/api/v1/admin/articles/${articleId}/approve`,
+      method: 'patch',
+    })
+
+    return { data: mapAdminArticle(payload) }
+  },
+
+  async rejectArticle(articleId: number) {
+    const payload = await request<AdminArticleItem>({
+      url: `/api/v1/admin/articles/${articleId}/reject`,
+      method: 'patch',
+    })
+
+    return { data: mapAdminArticle(payload) }
+  },
+
+  async deleteArticle(articleId: number) {
+    const payload = await request<Record<string, unknown>>({
+      url: `/api/v1/admin/articles/${articleId}`,
+      method: 'delete',
+    })
+
+    return { data: payload }
+  },
+
+  async getAiSessions(params: ListParams = {}) {
+    const payload = await request<PageResult<AdminAiSessionItem>>({
+      url: '/api/v1/admin/ai/sessions',
+      method: 'get',
+      params: {
+        page: params.page || 1,
+        pageSize: params.pageSize || 10,
+      },
+    })
+
+    return toPagedResult(payload, mapAdminAiSession)
   },
 }

@@ -14,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.example.getoffer.repository.ArticleRepository;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -21,6 +23,9 @@ class ArticleControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ArticleRepository articleRepository;
 
     @Test
     void articleCrudAndListEndpointsWork() throws Exception {
@@ -42,11 +47,17 @@ class ArticleControllerTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.title").value("Vue3 Composition API 详解"))
                 .andExpect(jsonPath("$.data.author.username").value("writer1"))
+                .andExpect(jsonPath("$.data.status").value("PENDING"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
         String articleId = JsonTestUtils.readJsonPath(createResponse, "$.data.id").toString();
+        Long createdArticleId = Long.valueOf(articleId);
+        articleRepository.findById(createdArticleId).ifPresent(article -> {
+            article.setStatus("APPROVED");
+            articleRepository.save(article);
+        });
 
         mockMvc.perform(get("/api/v1/articles")
                         .param("page", "1")
@@ -77,16 +88,58 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "title": "Vue3 Composition API 深入实践",
+                                  "title": "Vue3 Composition API 深入实战",
                                   "category": "前端",
                                   "type": 1,
-                                  "tags": ["Vue3", "实践"],
+                                  "tags": ["Vue3", "实战"],
                                   "content": "# 更新后的正文"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data.title").value("Vue3 Composition API 深入实践"))
-                .andExpect(jsonPath("$.data.tags[1]").value("实践"));
+                .andExpect(jsonPath("$.data.title").value("Vue3 Composition API 深入实战"))
+                .andExpect(jsonPath("$.data.tags[1]").value("实战"));
+    }
+
+    @Test
+    void publicArticleEndpointsOnlyExposeApprovedArticles() throws Exception {
+        String token = TestAuthHelper.registerAndGetToken(mockMvc, "writer_public", "13800138123", "123456");
+
+        String createResponse = mockMvc.perform(post("/api/v1/articles")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "不会公开",
+                                  "category": "后端",
+                                  "type": 1,
+                                  "tags": ["Spring"],
+                                  "content": "# hidden"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String articleId = JsonTestUtils.readJsonPath(createResponse, "$.data.id").toString();
+
+        mockMvc.perform(get("/api/v1/articles")
+                        .param("page", "1")
+                        .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.list.length()").value(0));
+
+        mockMvc.perform(get("/api/v1/articles/hot").param("limit", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+
+        mockMvc.perform(get("/api/v1/articles/" + articleId))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/v1/articles/" + articleId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
     }
 }

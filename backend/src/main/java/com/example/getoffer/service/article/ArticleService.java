@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -26,6 +27,9 @@ import jakarta.persistence.criteria.JoinType;
 
 @Service
 public class ArticleService {
+
+    private static final String ARTICLE_NOT_FOUND = "文章不存在";
+    private static final String APPROVED = "APPROVED";
 
     private final ArticleRepository articleRepository;
     private final FavoriteRepository favoriteRepository;
@@ -54,7 +58,7 @@ public class ArticleService {
         validateRequest(request);
         User currentUser = currentUserService.requireCurrentUser();
         Article article = articleRepository.findById(articleId)
-                .orElseThrow(() -> new IllegalArgumentException("文章不存在"));
+                .orElseThrow(() -> new IllegalArgumentException(ARTICLE_NOT_FOUND));
         if (!article.getAuthor().getId().equals(currentUser.getId())) {
             throw new IllegalArgumentException("无权限编辑此文章");
         }
@@ -66,10 +70,18 @@ public class ArticleService {
     @Transactional
     public ArticleDetailResponse getDetail(Long articleId) {
         Article article = articleRepository.findById(articleId)
-                .orElseThrow(() -> new IllegalArgumentException("文章不存在"));
+                .orElseThrow(() -> new IllegalArgumentException(ARTICLE_NOT_FOUND));
+        User currentUser = currentUserService.getCurrentUserOrNull();
+        if (!APPROVED.equals(article.getStatus())) {
+            boolean isOwner = currentUser != null && currentUser.getId().equals(article.getAuthor().getId());
+            if (!isOwner) {
+                throw new IllegalArgumentException(ARTICLE_NOT_FOUND);
+            }
+        }
+
         article.setViewCount(article.getViewCount() + 1);
         Article saved = articleRepository.save(article);
-        return toDetail(saved, currentUserService.getCurrentUserOrNull());
+        return toDetail(saved, currentUser);
     }
 
     @Transactional(readOnly = true)
@@ -82,7 +94,7 @@ public class ArticleService {
                                                              Long authorId,
                                                              String sort) {
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), pageSize, resolveSort(sort));
-        Specification<Article> specification = buildSpecification(type, category, tag, keyword, authorId);
+        Specification<Article> specification = buildSpecification(type, category, tag, keyword, authorId, true);
         Page<ArticleSummaryResponse> mappedPage = articleRepository.findAll(specification, pageable)
                 .map(article -> toSummary(article, currentUserService.getCurrentUserOrNull()));
         return PageResult.from(mappedPage, page, pageSize);
@@ -90,7 +102,7 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public List<ArticleSummaryResponse> getHotArticles(Integer type, int limit) {
-        List<Article> articles = articleRepository.findTop5ByOrderByFavoriteCountDescViewCountDescCreatedAtDesc();
+        List<Article> articles = articleRepository.findTop5ByStatusOrderByFavoriteCountDescViewCountDescCreatedAtDesc(APPROVED);
         return articles.stream()
                 .filter(article -> type == null || article.getType() == type)
                 .limit(limit)
@@ -108,8 +120,7 @@ public class ArticleService {
             List<ArticleSummaryResponse> filtered = mappedPage.getContent().stream()
                     .filter(article -> article.getType() == type)
                     .collect(Collectors.toList());
-            Page<ArticleSummaryResponse> filteredPage = new org.springframework.data.domain.PageImpl<>(
-                    filtered, pageable, filtered.size());
+            Page<ArticleSummaryResponse> filteredPage = new PageImpl<>(filtered, pageable, filtered.size());
             return PageResult.from(filteredPage, page, pageSize);
         }
         return PageResult.from(mappedPage, page, pageSize);
@@ -122,6 +133,7 @@ public class ArticleService {
         response.setAuthor(new ArticleAuthorResponse(article.getAuthor().getId(), article.getAuthor().getUsername()));
         response.setCategory(article.getCategory());
         response.setType(article.getType());
+        response.setStatus(article.getStatus());
         response.setTags(article.getTags().stream().map(tag -> tag.getName()).toList());
         response.setCreatedAt(article.getCreatedAt());
         response.setUpdatedAt(article.getUpdatedAt());
@@ -141,6 +153,7 @@ public class ArticleService {
         detail.setAuthor(summary.getAuthor());
         detail.setCategory(summary.getCategory());
         detail.setType(summary.getType());
+        detail.setStatus(summary.getStatus());
         detail.setTags(summary.getTags());
         detail.setCreatedAt(summary.getCreatedAt());
         detail.setUpdatedAt(summary.getUpdatedAt());
@@ -190,10 +203,14 @@ public class ArticleService {
                                                       String category,
                                                       String tag,
                                                       String keyword,
-                                                      Long authorId) {
+                                                      Long authorId,
+                                                      boolean approvedOnly) {
         return (root, query, cb) -> {
             query.distinct(true);
             var predicate = cb.conjunction();
+            if (approvedOnly) {
+                predicate = cb.and(predicate, cb.equal(root.get("status"), APPROVED));
+            }
             if (type != null) {
                 predicate = cb.and(predicate, cb.equal(root.get("type"), type));
             }

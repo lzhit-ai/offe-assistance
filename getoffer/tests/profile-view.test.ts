@@ -17,3 +17,9 @@ test('profile view exposes a direct nickname edit entry in the header', () => {
   assert.match(profileViewSource, /@click="openInfoTab"/)
   assert.match(profileViewSource, /编辑昵称/)
 })
+
+test('profile view renders moderation status labels for personal articles', () => {
+  assert.match(profileViewSource, /待审核/)
+  assert.match(profileViewSource, /已通过/)
+  assert.match(profileViewSource, /已拒绝/)
+})

@@ -1,18 +1,16 @@
-package com.example.getoffer.dto.auth;
+package com.example.getoffer.dto.admin;
 
 import java.time.LocalDateTime;
 
-public class UserProfileResponse {
+public class AdminUserResponse {
 
     private Long id;
     private String username;
     private String nickname;
     private String phone;
     private String email;
-    private String avatar;
     private String role;
     private LocalDateTime registerTime;
-    private UserStatsResponse stats;
 
     public Long getId() {
         return id;
@@ -54,14 +52,6 @@ public class UserProfileResponse {
         this.email = email;
     }
 
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
-
     public String getRole() {
         return role;
     }
@@ -76,13 +66,5 @@ public class UserProfileResponse {
 
     public void setRegisterTime(LocalDateTime registerTime) {
         this.registerTime = registerTime;
-    }
-
-    public UserStatsResponse getStats() {
-        return stats;
-    }
-
-    public void setStats(UserStatsResponse stats) {
-        this.stats = stats;
     }
 }

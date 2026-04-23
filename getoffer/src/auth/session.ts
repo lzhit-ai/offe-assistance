@@ -1,6 +1,6 @@
 export const AUTH_EXPIRED_EVENT = 'auth-expired'
 
-const STORAGE_KEYS = ['token', 'user']
+const STORAGE_KEYS = ['token', 'user'] as const
 
 type AuthExpiredDetail = {
   reason: string
@@ -19,10 +19,7 @@ const createAuthExpiredEvent = (detail: AuthExpiredDetail): Event => {
     return new CustomEvent(AUTH_EXPIRED_EVENT, { detail })
   }
 
-  return {
-    type: AUTH_EXPIRED_EVENT,
-    detail,
-  } as unknown as Event
+  return Object.assign(new Event(AUTH_EXPIRED_EVENT), { detail })
 }
 
 export const clearStoredSession = (storage: StorageLike = localStorage): void => {

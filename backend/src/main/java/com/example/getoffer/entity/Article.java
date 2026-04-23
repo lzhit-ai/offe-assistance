@@ -38,6 +38,9 @@ public class Article {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(nullable = false, length = 20)
+    private String status = "PENDING";
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -122,6 +125,14 @@ public class Article {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -18,6 +18,7 @@ test('mapArticle normalizes backend article fields for the current UI', () => {
     },
     category: '后端',
     type: 1,
+    status: 'PENDING',
     tags: ['Java', 'Spring Security'],
     createdAt: '2026-04-20T10:30:00',
     updatedAt: '2026-04-20T12:00:00',
@@ -39,6 +40,7 @@ test('mapArticle normalizes backend article fields for the current UI', () => {
     },
     category: '后端',
     type: 1,
+    status: 'PENDING',
     tags: ['Java', 'Spring Security'],
     createdAt: '2026-04-20',
     updatedAt: '2026-04-20',
@@ -61,6 +63,7 @@ test('mapPageResult maps paged backend results and preserves pagination info', (
           author: { id: 1, username: 'bob' },
           category: '前端',
           type: 1,
+          status: 'APPROVED',
           tags: ['Vue3'],
           createdAt: '2026-04-20T09:00:00',
           viewCount: 10,
@@ -100,6 +103,16 @@ test('mapUserProfile formats register time for profile page consumption', () => 
 
   assert.equal(profile.registerTime, '2026-04-19')
   assert.equal(profile.stats.articleCount, 3)
+})
+
+test('mapUserProfile preserves role for admin routing', () => {
+  const profile = mapUserProfile({
+    username: 'root',
+    role: 'ADMIN',
+    registerTime: '2026-04-23T08:00:00',
+  })
+
+  assert.equal(profile.role, 'ADMIN')
 })
 
 test('buildArticleListQuery omits empty filters and maps article type route values', () => {

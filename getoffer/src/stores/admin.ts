@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia'
+import type { UserProfile } from '@/api/transformers'
 
 const USER_STORAGE_KEY = 'user'
 
-type StoredUser = Record<string, unknown>
-
-const readStoredUser = (): StoredUser | null => {
+const readStoredUser = (): UserProfile | null => {
   const raw = localStorage.getItem(USER_STORAGE_KEY)
 
   if (!raw) {
@@ -12,29 +11,35 @@ const readStoredUser = (): StoredUser | null => {
   }
 
   try {
-    return JSON.parse(raw) as StoredUser
+    return JSON.parse(raw) as UserProfile
   } catch {
     localStorage.removeItem(USER_STORAGE_KEY)
     return null
   }
 }
 
+interface UserState {
+  user: UserProfile | null
+  token: string
+}
+
 export const useUserStore = defineStore('user', {
-  state: () => ({
-    user: readStoredUser() as StoredUser | null,
+  state: (): UserState => ({
+    user: readStoredUser(),
     token: localStorage.getItem('token') || '',
   }),
   getters: {
-    isLoggedIn: (state) => !!state.token,
+    isLoggedIn: (state) => Boolean(state.token),
+    isAdmin: (state) => state.user?.role === 'ADMIN',
   },
   actions: {
-    login(token: string, user: StoredUser) {
+    login(token: string, user: UserProfile) {
       this.token = token
       this.user = user
       localStorage.setItem('token', token)
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
     },
-    setUser(user: StoredUser) {
+    setUser(user: UserProfile) {
       this.user = user
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
     },

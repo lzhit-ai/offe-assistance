@@ -44,15 +44,18 @@
         <el-tabs v-model="activeTab" class="profile-tabs">
           <el-tab-pane label="我的文章" name="articles">
             <div v-if="!loading && userArticles.length === 0" class="empty-state">
-              <el-empty description="您还没有发布过文章" />
+              <el-empty description="你还没有发布过文章" />
               <el-button type="primary" @click="goToUpload">去发布</el-button>
             </div>
             <div v-else class="article-list">
-              <ArticleCard
-                v-for="article in userArticles"
-                :key="article.id"
-                :article="article"
-              />
+              <div v-for="article in userArticles" :key="article.id" class="article-item">
+                <div class="article-item__status">
+                  <el-tag :type="getStatusTagType(article.status)" effect="light">
+                    {{ getStatusLabel(article.status) }}
+                  </el-tag>
+                </div>
+                <ArticleCard :article="article" />
+              </div>
             </div>
             <div v-if="pagination.total > pagination.pageSize" class="pagination-wrapper">
               <el-pagination
@@ -102,11 +105,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, type UploadFile } from 'element-plus'
 import { articleApi, authApi, userApi } from '@/api/frontend'
+import type { ArticleItem, UserProfile } from '@/api/transformers'
 import { useUserStore } from '@/stores/admin'
 import ArticleCard from '@/components/ArticleCard.vue'
 import Navbar from '@/components/Navbar.vue'
@@ -120,23 +124,30 @@ import {
   validateNickname,
 } from '@/utils/user-profile'
 
-const buildUserInfo = (profile = {}) => ({
-  username: profile.username || '',
-  nickname: profile.nickname || '',
-  email: profile.email || '',
-  phone: profile.phone || '',
-  avatar: profile.avatar || '',
-  registerTime: profile.registerTime || '',
+const buildUserInfo = (profile?: Partial<UserProfile> | null): UserProfile => ({
+  id: profile?.id,
+  username: profile?.username || '',
+  nickname: profile?.nickname || '',
+  email: profile?.email || '',
+  phone: profile?.phone || '',
+  avatar: profile?.avatar || '',
+  role: profile?.role || 'USER',
+  registerTime: profile?.registerTime || '',
   stats: {
-    articleCount: profile.stats?.articleCount || 0,
-    favoriteCount: profile.stats?.favoriteCount || 0,
-    likeCount: profile.stats?.likeCount || 0,
+    articleCount: profile?.stats?.articleCount || 0,
+    favoriteCount: profile?.stats?.favoriteCount || 0,
+    likeCount: profile?.stats?.likeCount || 0,
   },
 })
 
+const statusLabelMap = {
+  PENDING: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已拒绝',
+} as const
+
 const router = useRouter()
 const userStore = useUserStore()
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 const activeTab = ref('articles')
 const loading = ref(false)
 const nicknameSaving = ref(false)
@@ -149,22 +160,33 @@ const nicknameForm = ref({
   nickname: userInfo.value.nickname,
 })
 
-const userArticles = ref([])
+const userArticles = ref<ArticleItem[]>([])
 const pagination = ref({
   page: 1,
   pageSize: PROFILE_ARTICLES_PAGE_SIZE,
   total: 0,
 })
 
-const userAvatar = computed(() => resolveAvatarUrl(userInfo.value.avatar, apiBaseUrl))
+const userAvatar = computed(() => resolveAvatarUrl(userInfo.value.avatar))
 const displayName = computed(() => getDisplayName(userInfo.value))
 const avatarFallback = computed(() => getAvatarFallback(userInfo.value))
 
-const applyProfile = (profile) => {
+const applyProfile = (profile: Partial<UserProfile>) => {
   const normalized = buildUserInfo(profile)
   userInfo.value = normalized
   nicknameForm.value.nickname = normalized.nickname
   userStore.setUser(normalized)
+}
+
+const getStatusLabel = (status: string) => statusLabelMap[status as keyof typeof statusLabelMap] || '未知状态'
+const getStatusTagType = (status: string) => {
+  if (status === 'APPROVED') {
+    return 'success'
+  }
+  if (status === 'REJECTED') {
+    return 'danger'
+  }
+  return 'warning'
 }
 
 const goToUpload = () => {
@@ -192,22 +214,23 @@ const saveNickname = async () => {
     applyProfile(response.data)
     ElMessage.success('昵称已更新')
   } catch (error) {
-    nicknameError.value = error.message || '昵称更新失败'
-    ElMessage.error(error.message || '昵称更新失败')
+    const message = error instanceof Error ? error.message : '昵称更新失败'
+    nicknameError.value = message
+    ElMessage.error(message)
   } finally {
     nicknameSaving.value = false
   }
 }
 
-const handleAvatarChange = async (uploadFile) => {
-  const file = uploadFile?.raw || uploadFile
+const handleAvatarChange = async (uploadFile: UploadFile) => {
+  const rawFile = uploadFile?.raw
 
-  if (!file) {
+  if (!rawFile) {
     ElMessage.error('请选择图片文件')
     return
   }
 
-  const validation = isAcceptedAvatarFile(file)
+  const validation = isAcceptedAvatarFile(rawFile)
 
   if (!validation.valid) {
     ElMessage.error(validation.message)
@@ -216,14 +239,15 @@ const handleAvatarChange = async (uploadFile) => {
 
   avatarUploading.value = true
   try {
-    const response = await userApi.uploadAvatar(file)
+    const response = await userApi.uploadAvatar(rawFile as File)
     applyProfile({
       ...userInfo.value,
       avatar: response.data.avatar,
     })
     ElMessage.success('头像已更新')
   } catch (error) {
-    ElMessage.error(error.message || '头像上传失败')
+    const message = error instanceof Error ? error.message : '头像上传失败'
+    ElMessage.error(message)
   } finally {
     avatarUploading.value = false
   }
@@ -243,14 +267,15 @@ const loadProfile = async (page = currentPage.value) => {
     pagination.value = articleResponse.pagination
   } catch (error) {
     userStore.logout()
-    ElMessage.error(error.message || '获取个人信息失败')
+    const message = error instanceof Error ? error.message : '获取个人信息失败'
+    ElMessage.error(message)
     router.push('/')
   } finally {
     loading.value = false
   }
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = (page: number) => {
   loadProfile(page)
 }
 
@@ -369,6 +394,17 @@ onMounted(() => {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   margin-top: 20px;
+}
+
+.article-item {
+  position: relative;
+}
+
+.article-item__status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
 }
 
 .pagination-wrapper {

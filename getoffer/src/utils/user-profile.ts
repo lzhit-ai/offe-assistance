@@ -1,6 +1,10 @@
-type UserIdentity = {
+const DEFAULT_API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || 'http://localhost:8080'
+
+export interface DisplayUser {
   username?: string
   nickname?: string
+  avatar?: string
 }
 
 type ValidationResult = {
@@ -15,15 +19,15 @@ type AvatarFileLike = {
 
 const isAbsoluteUrl = (value = ''): boolean => /^[a-z][a-z\d+\-.]*:/i.test(value) || value.startsWith('//')
 
-export const getDisplayName = (user: UserIdentity = {}): string =>
-  user.nickname?.trim() || user.username || '用户'
+export const getDisplayName = (user: DisplayUser | null = {}): string =>
+  user?.nickname?.trim() || user?.username || '用户'
 
-export const getAvatarFallback = (user: UserIdentity = {}): string => {
+export const getAvatarFallback = (user: DisplayUser | null = {}): string => {
   const displayName = getDisplayName(user)
   return displayName?.charAt(0).toUpperCase() || 'U'
 }
 
-export const resolveAvatarUrl = (avatar = '', apiBaseUrl = ''): string => {
+export const resolveAvatarUrl = (avatar = '', baseUrl = DEFAULT_API_BASE_URL): string => {
   const normalizedAvatar = avatar.trim()
   if (!normalizedAvatar) {
     return ''
@@ -33,7 +37,7 @@ export const resolveAvatarUrl = (avatar = '', apiBaseUrl = ''): string => {
     return normalizedAvatar
   }
 
-  const normalizedBase = apiBaseUrl.trim()
+  const normalizedBase = baseUrl.trim()
   if (!normalizedBase) {
     return normalizedAvatar
   }

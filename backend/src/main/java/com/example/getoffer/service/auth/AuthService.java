@@ -93,6 +93,7 @@ public class AuthService {
         response.setPhone(user.getPhone());
         response.setEmail(user.getEmail());
         response.setAvatar(user.getAvatar());
+        response.setRole(user.getRole());
         response.setRegisterTime(user.getRegisterTime());
         response.setStats(new UserStatsResponse(
                 articleRepository.countByAuthorId(user.getId()),

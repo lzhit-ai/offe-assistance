@@ -1,6 +1,5 @@
 const DEFAULT_BASE_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
-  'http://localhost:8080'
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || 'http://localhost:8080'
 
 type SseEventPayload = {
   event: string
@@ -9,7 +8,7 @@ type SseEventPayload = {
 
 type SseEventHandler = (event: SseEventPayload) => void
 
-type StreamAiMessageOptions = {
+export type StreamAiMessageOptions = {
   sessionId: number | string
   content: string
   token?: string
@@ -40,7 +39,7 @@ const safeParseJson = (value: unknown): unknown => {
   }
 
   try {
-    return JSON.parse(raw)
+    return JSON.parse(raw) as unknown
   } catch {
     return raw
   }
@@ -190,11 +189,12 @@ export const streamAiMessage = async ({
     parser.push(decoder.decode(value, { stream: true }))
 
     if (streamError) {
+      await reader.cancel().catch(() => undefined)
       throw streamError
     }
 
     if (streamDone) {
-      await reader.cancel()
+      await reader.cancel().catch(() => undefined)
       break
     }
   }

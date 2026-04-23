@@ -48,3 +48,25 @@ test('resolveRouteAccess ignores public routes', () => {
 
   assert.equal(redirect, null)
 })
+
+test('resolveRouteAccess redirects non-admin users away from admin routes', () => {
+  const redirect = resolveRouteAccess(
+    {
+      fullPath: '/admin/dashboard',
+      meta: {
+        requiresAuth: true,
+        requiresAdmin: true,
+      },
+    },
+    true,
+    false,
+  )
+
+  assert.deepEqual(redirect, {
+    path: '/',
+    query: {
+      login: '1',
+      redirect: '/admin/dashboard',
+    },
+  })
+})

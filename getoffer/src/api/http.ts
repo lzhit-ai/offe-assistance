@@ -3,6 +3,11 @@ import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axio
 
 import { handleUnauthorizedSession } from '@/auth/session'
 
+interface ErrorPayload {
+  message?: string
+  error?: string
+}
+
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   timeout: 10000,
@@ -24,7 +29,7 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 http.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError<{ message?: string; error?: string }>) => {
+  (error: AxiosError<ErrorPayload>) => {
     const message =
       error.response?.data?.message ||
       error.response?.data?.error ||

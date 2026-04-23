@@ -1,6 +1,142 @@
-type AnyRecord = Record<string, any>
+export type UserRole = 'USER' | 'ADMIN' | (string & {})
+export type ArticleStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | (string & {})
 
-type PageResult<T> = {
+interface RawAuthor {
+  id?: number
+  username?: string
+  nickname?: string
+}
+
+interface RawStats {
+  articleCount?: number
+  favoriteCount?: number
+  likeCount?: number
+}
+
+interface RawPageResult<T> {
+  list?: T[]
+  page?: number
+  pageSize?: number
+  total?: number
+  hasMore?: boolean
+}
+
+interface RawArticle {
+  id?: number
+  title?: string
+  author?: RawAuthor | string
+  category?: string
+  type?: number
+  status?: ArticleStatus
+  tags?: string[]
+  createdAt?: string
+  updatedAt?: string
+  viewCount?: number
+  favoriteCount?: number
+  commentCount?: number
+  isFavorited?: boolean
+  content?: string
+  canEdit?: boolean
+}
+
+interface RawUserProfile {
+  id?: number
+  username?: string
+  nickname?: string
+  phone?: string
+  email?: string
+  avatar?: string
+  role?: UserRole
+  registerTime?: string
+  stats?: RawStats
+}
+
+interface RawAiSession {
+  id?: number
+  title?: string
+  createdAt?: string
+  updatedAt?: string
+  lastMessagePreview?: string
+}
+
+interface RawAiMessage {
+  id?: number
+  role?: string
+  content?: string
+  createdAt?: string
+  status?: string
+}
+
+interface RawAdminUser {
+  id?: number
+  username?: string
+  nickname?: string
+  phone?: string
+  email?: string
+  role?: UserRole
+  registerTime?: string
+}
+
+interface RawAdminArticle {
+  id?: number
+  title?: string
+  authorId?: number
+  authorName?: string
+  category?: string
+  type?: number
+  status?: ArticleStatus
+  tags?: string[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+interface RawAdminAiSession {
+  id?: number
+  userId?: number
+  username?: string
+  title?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ArticleItem {
+  id?: number
+  title: string
+  author: string
+  authorInfo: RawAuthor | string | null
+  category: string
+  type: number
+  status: ArticleStatus
+  tags: string[]
+  createdAt: string
+  updatedAt: string
+  viewCount: number
+  favoriteCount: number
+  commentCount: number
+  isFavorited: boolean
+  content: string
+  canEdit: boolean
+}
+
+export interface UserStats {
+  articleCount: number
+  favoriteCount: number
+  likeCount: number
+}
+
+export interface UserProfile {
+  id?: number
+  username: string
+  nickname: string
+  phone: string
+  email: string
+  avatar: string
+  role: UserRole
+  registerTime: string
+  stats: UserStats
+}
+
+export interface PageResult<T> {
   list: T[]
   page: number
   pageSize: number
@@ -8,18 +144,66 @@ type PageResult<T> = {
   hasMore: boolean
 }
 
-type ArticleListQueryInput = {
-  page?: number
-  pageSize?: number
-  type?: string | number
-  category?: string
-  tag?: string
-  keyword?: string
-  authorId?: string | number
-  sort?: string
+export interface AiSessionItem {
+  id?: number
+  title: string
+  createdAt: string
+  updatedAt: string
+  lastMessagePreview: string
 }
 
-const formatDate = (value: string | number | Date | null | undefined): string => {
+export interface AiMessageItem {
+  id?: number
+  role: string
+  content: string
+  createdAt: string
+  status: string
+}
+
+export interface AdminDashboard {
+  userCount: number
+  articleCount: number
+  aiSessionCount: number
+}
+
+export interface AdminUserItem {
+  id?: number
+  username: string
+  nickname: string
+  phone: string
+  email: string
+  role: UserRole
+  registerTime: string
+}
+
+export interface AdminArticleItem {
+  id?: number
+  title: string
+  authorId?: number
+  authorName: string
+  category: string
+  type: number
+  status: ArticleStatus
+  tags: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminAiSessionItem {
+  id?: number
+  userId?: number
+  username: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MetadataItem {
+  id?: number
+  name: string
+}
+
+const formatDate = (value?: string): string => {
   if (!value) {
     return ''
   }
@@ -32,38 +216,59 @@ const formatDate = (value: string | number | Date | null | undefined): string =>
   return date.toISOString().slice(0, 10)
 }
 
-const formatDateTime = (value: unknown): string => {
-  if (!value || typeof value !== 'string') {
+const formatDateTime = (value?: string): string => {
+  if (!value) {
     return ''
   }
 
-  return value.replace('T', ' ').slice(0, 16)
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString()
+  return iso.slice(0, 16).replace('T', ' ')
 }
 
-const toArticleType = (type: string | number | undefined): number | undefined => {
+const toArticleType = (type?: string | number): number | undefined => {
   if (type === 'tech') {
     return 1
   }
+
   if (type === 'interview') {
     return 2
   }
+
   if (typeof type === 'number') {
     return type
   }
+
   if (typeof type === 'string' && type.trim() !== '') {
     const parsed = Number(type)
     return Number.isNaN(parsed) ? undefined : parsed
   }
+
   return undefined
 }
 
-export const mapArticle = (article: AnyRecord = {}): AnyRecord => ({
+const normalizeArticleStatus = (status?: ArticleStatus): ArticleStatus => {
+  if (status === 'PENDING' || status === 'REJECTED' || status === 'APPROVED') {
+    return status
+  }
+
+  return 'APPROVED'
+}
+
+export const mapArticle = (article: RawArticle = {}): ArticleItem => ({
   id: article.id,
   title: article.title || '',
-  author: article.author?.username || article.author || '匿名用户',
+  author:
+    (typeof article.author === 'object' ? article.author?.nickname || article.author?.username : article.author) ||
+    '匿名用户',
   authorInfo: article.author || null,
   category: article.category || '',
   type: article.type ?? 1,
+  status: normalizeArticleStatus(article.status),
   tags: Array.isArray(article.tags) ? article.tags : [],
   createdAt: formatDate(article.createdAt),
   updatedAt: formatDate(article.updatedAt),
@@ -75,10 +280,10 @@ export const mapArticle = (article: AnyRecord = {}): AnyRecord => ({
   canEdit: Boolean(article.canEdit),
 })
 
-export const mapPageResult = <T>(
-  pageResult: AnyRecord = {},
-  mapper: (item: AnyRecord) => T = (item) => item as T,
-): PageResult<T> => ({
+export const mapPageResult = <TInput, TOutput>(
+  pageResult: RawPageResult<TInput> = {},
+  mapper: (item: TInput) => TOutput = ((item: TInput) => item as unknown as TOutput),
+): PageResult<TOutput> => ({
   list: Array.isArray(pageResult.list) ? pageResult.list.map(mapper) : [],
   page: pageResult.page || 1,
   pageSize: pageResult.pageSize || 10,
@@ -86,10 +291,14 @@ export const mapPageResult = <T>(
   hasMore: Boolean(pageResult.hasMore),
 })
 
-export const mapUserProfile = (profile: AnyRecord = {}): AnyRecord => ({
-  ...profile,
+export const mapUserProfile = (profile: RawUserProfile = {}): UserProfile => ({
+  id: profile.id,
+  username: profile.username || '',
   nickname: profile.nickname || '',
+  phone: profile.phone || '',
+  email: profile.email || '',
   avatar: profile.avatar || '',
+  role: profile.role || 'USER',
   registerTime: formatDate(profile.registerTime),
   stats: {
     articleCount: profile.stats?.articleCount || 0,
@@ -98,7 +307,7 @@ export const mapUserProfile = (profile: AnyRecord = {}): AnyRecord => ({
   },
 })
 
-export const mapAiSession = (session: AnyRecord = {}): AnyRecord => ({
+export const mapAiSession = (session: RawAiSession = {}): AiSessionItem => ({
   id: session.id,
   title: session.title || '新对话',
   createdAt: formatDateTime(session.createdAt),
@@ -106,12 +315,50 @@ export const mapAiSession = (session: AnyRecord = {}): AnyRecord => ({
   lastMessagePreview: session.lastMessagePreview || '',
 })
 
-export const mapAiMessage = (message: AnyRecord = {}): AnyRecord => ({
+export const mapAiMessage = (message: RawAiMessage = {}): AiMessageItem => ({
   id: message.id,
   role: message.role || 'assistant',
   content: message.content || '',
   createdAt: formatDateTime(message.createdAt),
   status: message.status || 'success',
+})
+
+export const mapAdminDashboard = (dashboard: Partial<AdminDashboard> = {}): AdminDashboard => ({
+  userCount: dashboard.userCount || 0,
+  articleCount: dashboard.articleCount || 0,
+  aiSessionCount: dashboard.aiSessionCount || 0,
+})
+
+export const mapAdminUser = (user: RawAdminUser = {}): AdminUserItem => ({
+  id: user.id,
+  username: user.username || '',
+  nickname: user.nickname || '',
+  phone: user.phone || '',
+  email: user.email || '',
+  role: user.role || 'USER',
+  registerTime: formatDate(user.registerTime),
+})
+
+export const mapAdminArticle = (article: RawAdminArticle = {}): AdminArticleItem => ({
+  id: article.id,
+  title: article.title || '',
+  authorId: article.authorId,
+  authorName: article.authorName || '',
+  category: article.category || '',
+  type: article.type ?? 1,
+  status: normalizeArticleStatus(article.status),
+  tags: Array.isArray(article.tags) ? article.tags : [],
+  createdAt: formatDateTime(article.createdAt),
+  updatedAt: formatDateTime(article.updatedAt),
+})
+
+export const mapAdminAiSession = (session: RawAdminAiSession = {}): AdminAiSessionItem => ({
+  id: session.id,
+  userId: session.userId,
+  username: session.username || '',
+  title: session.title || '未命名会话',
+  createdAt: formatDateTime(session.createdAt),
+  updatedAt: formatDateTime(session.updatedAt),
 })
 
 export const buildArticleListQuery = ({
@@ -123,7 +370,16 @@ export const buildArticleListQuery = ({
   keyword,
   authorId,
   sort,
-}: ArticleListQueryInput = {}): Record<string, string | number> => {
+}: {
+  page?: number
+  pageSize?: number
+  type?: string | number
+  category?: string
+  tag?: string
+  keyword?: string
+  authorId?: string | number
+  sort?: string
+} = {}): Record<string, string | number> => {
   const query: Record<string, string | number> = {
     page,
     pageSize,

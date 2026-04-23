@@ -7,6 +7,6 @@ test('getFeatureAvailability marks AI assistant as enabled', () => {
   assert.deepEqual(getFeatureAvailability('aiAssistant'), {
     enabled: true,
     badge: '已开放',
-    message: 'AI 助手现已接入真实后端，会保存你的会话和消息记录。',
+    message: 'AI 助手已经接入真实后端，会保存你的会话和消息记录。',
   })
 })

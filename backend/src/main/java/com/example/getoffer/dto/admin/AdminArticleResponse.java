@@ -1,26 +1,20 @@
-package com.example.getoffer.dto.article;
+package com.example.getoffer.dto.admin;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-public class ArticleSummaryResponse {
+public class AdminArticleResponse {
 
     private Long id;
     private String title;
-    private ArticleAuthorResponse author;
+    private Long authorId;
+    private String authorName;
     private String category;
     private int type;
     private String status;
     private List<String> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private long viewCount;
-    private long favoriteCount;
-    private long commentCount;
-    @JsonProperty("isFavorited")
-    private boolean isFavorited;
 
     public Long getId() {
         return id;
@@ -38,12 +32,20 @@ public class ArticleSummaryResponse {
         this.title = title;
     }
 
-    public ArticleAuthorResponse getAuthor() {
-        return author;
+    public Long getAuthorId() {
+        return authorId;
     }
 
-    public void setAuthor(ArticleAuthorResponse author) {
-        this.author = author;
+    public void setAuthorId(Long authorId) {
+        this.authorId = authorId;
+    }
+
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
     }
 
     public String getCategory() {
@@ -92,37 +94,5 @@ public class ArticleSummaryResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public long getViewCount() {
-        return viewCount;
-    }
-
-    public void setViewCount(long viewCount) {
-        this.viewCount = viewCount;
-    }
-
-    public long getFavoriteCount() {
-        return favoriteCount;
-    }
-
-    public void setFavoriteCount(long favoriteCount) {
-        this.favoriteCount = favoriteCount;
-    }
-
-    public long getCommentCount() {
-        return commentCount;
-    }
-
-    public void setCommentCount(long commentCount) {
-        this.commentCount = commentCount;
-    }
-
-    public boolean isFavorited() {
-        return isFavorited;
-    }
-
-    public void setFavorited(boolean favorited) {
-        isFavorited = favorited;
     }
 }
