@@ -150,4 +150,38 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.success").value(true));
     }
+
+    @Test
+    void adminCanUpdateOtherUsersRoleButCannotChangeSelf() throws Exception {
+        String adminToken = TestAuthHelper.registerAndGetToken(mockMvc, "super_admin", "13800138130", "123456");
+        User adminUser = userRepository.findByUsername("super_admin").orElseThrow();
+        adminUser.setRole("ADMIN");
+        userRepository.save(adminUser);
+
+        TestAuthHelper.registerAndGetToken(mockMvc, "member_user", "13800138131", "123456");
+        User memberUser = userRepository.findByUsername("member_user").orElseThrow();
+
+        mockMvc.perform(patch("/api/v1/admin/users/" + memberUser.getId() + "/role")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.role").value("ADMIN"));
+
+        mockMvc.perform(patch("/api/v1/admin/users/" + adminUser.getId() + "/role")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "role": "USER"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("不能修改自己的角色"));
+    }
 }

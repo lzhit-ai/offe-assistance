@@ -384,6 +384,16 @@ export const adminApi = {
     return toPagedResult(payload, mapAdminUser)
   },
 
+  async updateUserRole(userId: number, role: 'USER' | 'ADMIN') {
+    const payload = await request<AdminUserItem>({
+      url: `/api/v1/admin/users/${userId}/role`,
+      method: 'patch',
+      data: { role },
+    })
+
+    return { data: mapAdminUser(payload) }
+  },
+
   async getArticles(params: AdminArticleQuery = {}) {
     const payload = await request<PageResult<AdminArticleItem>>({
       url: '/api/v1/admin/articles',

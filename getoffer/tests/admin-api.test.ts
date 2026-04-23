@@ -10,7 +10,9 @@ test('frontend api exposes admin dashboard and moderation endpoints', () => {
 
   assert.match(source, /adminApi/)
   assert.match(source, /\/api\/v1\/admin\/dashboard/)
+  assert.match(source, /\/api\/v1\/admin\/users\/\$\{userId\}\/role/)
   assert.match(source, /\/api\/v1\/admin\/articles/)
+  assert.match(source, /updateUserRole/)
   assert.match(source, /approveArticle/)
   assert.match(source, /rejectArticle/)
 })

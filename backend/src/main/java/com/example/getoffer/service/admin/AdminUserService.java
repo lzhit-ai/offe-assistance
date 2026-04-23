@@ -29,6 +29,27 @@ public class AdminUserService {
         return PageResult.from(mapped, page, pageSize);
     }
 
+    public AdminUserResponse updateUserRole(Long userId, String role) {
+        User currentAdmin = adminAccessService.requireAdmin();
+        String normalizedRole = normalizeRole(role);
+
+        if (currentAdmin.getId().equals(userId)) {
+            throw new IllegalArgumentException("不能修改自己的角色");
+        }
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        targetUser.setRole(normalizedRole);
+        return toResponse(userRepository.save(targetUser));
+    }
+
+    private String normalizeRole(String role) {
+        if ("ADMIN".equals(role) || "USER".equals(role)) {
+            return role;
+        }
+        throw new IllegalArgumentException("角色不合法");
+    }
+
     private AdminUserResponse toResponse(User user) {
         AdminUserResponse response = new AdminUserResponse();
         response.setId(user.getId());
