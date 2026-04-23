@@ -3,7 +3,10 @@
     <Navbar />
     <el-card class="upload-container" shadow="never">
       <template #header>
-        <h2>{{ isEditMode ? '编辑文章' : '上传文章' }}</h2>
+        <div class="upload-header">
+          <h2>{{ isEditMode ? '编辑文章' : '上传文章' }}</h2>
+          <p v-if="!isEditMode">文章提交后会进入后台审核，审核通过后才会在前台展示。</p>
+        </div>
       </template>
       <el-form
         ref="formRef"
@@ -69,7 +72,7 @@
 
         <el-form-item>
           <el-button type="primary" @click="handleSubmit" :loading="submitLoading">
-            {{ isEditMode ? '更新' : '发布' }}
+            {{ isEditMode ? '更新' : '提交审核' }}
           </el-button>
           <el-button @click="router.back()">取消</el-button>
         </el-form-item>
@@ -78,10 +81,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import Navbar from '@/components/Navbar.vue'
 import { articleApi, metadataApi } from '@/api/frontend'
 import { useUserStore } from '@/stores/admin'
@@ -94,11 +97,18 @@ const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const submitLoading = ref(false)
-const formRef = ref()
+const formRef = ref<FormInstance>()
 const categories = ref([...fallbackCategories])
 const presetTags = ref([...fallbackTags])
 
-const form = reactive({
+const form = reactive<{
+  title: string
+  category: string
+  type: number
+  tags: string[]
+  content: string
+  id: number | null
+}>({
   title: '',
   category: fallbackCategories[0],
   type: 1,
@@ -107,13 +117,21 @@ const form = reactive({
   id: null,
 })
 
-const rules = {
+const rules: FormRules<typeof form> = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
   category: [{ required: true, message: '请选择分类', trigger: 'change' }],
   content: [{ required: true, message: '请输入内容', trigger: 'blur' }],
 }
 
-const isEditMode = computed(() => Boolean(route.query.id))
+const getRouteArticleId = () => {
+  const rawId = route.query.id
+  if (Array.isArray(rawId)) {
+    return rawId[0]
+  }
+  return rawId || null
+}
+
+const isEditMode = computed(() => Boolean(getRouteArticleId()))
 
 const loadMetadata = async () => {
   try {
@@ -146,7 +164,7 @@ const loadArticleData = async () => {
 
   loading.value = true
   try {
-    const response = await articleApi.getDetail(route.query.id)
+    const response = await articleApi.getDetail(getRouteArticleId())
     const article = response.data
 
     if (!article.canEdit) {
@@ -155,14 +173,15 @@ const loadArticleData = async () => {
       return
     }
 
-    form.id = article.id
+    form.id = article.id || null
     form.title = article.title
     form.category = article.category || categories.value[0]
     form.type = article.type || 1
     form.tags = article.tags || []
     form.content = article.content || ''
   } catch (error) {
-    ElMessage.error(error.message || '加载文章失败，请稍后重试')
+    const message = error instanceof Error ? error.message : '加载文章失败，请稍后重试'
+    ElMessage.error(message)
     router.back()
   } finally {
     loading.value = false
@@ -182,7 +201,7 @@ onMounted(async () => {
 
 const handleSubmit = async () => {
   try {
-    await formRef.value.validate()
+    await formRef.value?.validate()
     submitLoading.value = true
 
     const articleData = {
@@ -194,16 +213,18 @@ const handleSubmit = async () => {
     }
 
     if (isEditMode.value) {
-      await articleApi.update(form.id, articleData)
+      await articleApi.update(form.id || undefined, articleData)
       ElMessage.success('更新成功')
     } else {
       await articleApi.create(articleData)
-      ElMessage.success('发布成功')
+      ElMessage.success('文章已提交审核')
     }
 
     router.push('/')
   } catch (error) {
-    ElMessage.error(error.message || (isEditMode.value ? '更新失败' : '发布失败'))
+    const fallbackMessage = isEditMode.value ? '更新失败' : '提交审核失败'
+    const message = error instanceof Error ? error.message : fallbackMessage
+    ElMessage.error(message || fallbackMessage)
   } finally {
     submitLoading.value = false
   }
@@ -215,5 +236,11 @@ const handleSubmit = async () => {
   max-width: 900px;
   margin: 0 auto;
   border-radius: 24px;
+}
+
+.upload-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
 }
 </style>

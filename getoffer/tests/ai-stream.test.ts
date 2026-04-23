@@ -1,10 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { createSseParser, streamAiMessage } from '../src/api/ai-stream.js'
+import { createSseParser, streamAiMessage } from '../src/api/ai-stream.ts'
 
 test('createSseParser parses fragmented chunk and done events', () => {
-  const events = []
+  const events: Array<{ event: string; data: unknown }> = []
   const parser = createSseParser((event) => events.push(event))
 
   parser.push('event: chunk\ndata: 你好，')
@@ -40,8 +40,8 @@ test('streamAiMessage forwards stream chunks and returns done payload', async ()
     },
   })
 
-  const chunks = []
-  let donePayload = null
+  const chunks: string[] = []
+  let donePayload: unknown = null
 
   const result = await streamAiMessage({
     sessionId: 8,

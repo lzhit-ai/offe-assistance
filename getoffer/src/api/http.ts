@@ -1,12 +1,17 @@
-import axios from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { handleUnauthorizedSession } from '@/auth/session'
+
+interface ErrorPayload {
+  message?: string
+  error?: string
+}
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   timeout: 10000,
 })
 
-http.interceptors.request.use((config) => {
+http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token')
 
   if (token) {
@@ -18,7 +23,7 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError<ErrorPayload>) => {
     const message =
       error.response?.data?.message ||
       error.response?.data?.error ||

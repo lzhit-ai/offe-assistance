@@ -8,7 +8,7 @@ import {
   parsePage,
   resetPageInQuery,
   withPageInQuery,
-} from '../src/utils/pagination.js'
+} from '../src/utils/pagination.ts'
 
 test('pagination page sizes match the agreed UI rules', () => {
   assert.equal(ARTICLE_LIST_PAGE_SIZE, 5)

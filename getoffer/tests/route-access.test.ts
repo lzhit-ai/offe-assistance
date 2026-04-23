@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { resolveRouteAccess } from '../src/router/route-access.js'
+import { resolveRouteAccess } from '../src/router/route-access.ts'
 
 test('resolveRouteAccess redirects guests away from protected routes', () => {
   const redirect = resolveRouteAccess(
@@ -47,4 +47,26 @@ test('resolveRouteAccess ignores public routes', () => {
   )
 
   assert.equal(redirect, null)
+})
+
+test('resolveRouteAccess redirects non-admin users away from admin routes', () => {
+  const redirect = resolveRouteAccess(
+    {
+      fullPath: '/admin/dashboard',
+      meta: {
+        requiresAuth: true,
+        requiresAdmin: true,
+      },
+    },
+    true,
+    false,
+  )
+
+  assert.deepEqual(redirect, {
+    path: '/',
+    query: {
+      login: '1',
+      redirect: '/admin/dashboard',
+    },
+  })
 })

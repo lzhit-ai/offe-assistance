@@ -61,16 +61,17 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import type { LocationQueryRaw } from 'vue-router'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import LoginModal from './LoginModal.vue'
 import { authApi } from '@/api/frontend'
 import { useUserStore } from '@/stores/admin'
 import { NAVBAR_THRESHOLD, getNavbarPhase } from '@/utils/navbar-visibility'
-import { getAvatarFallback, getDisplayName } from '@/utils/user-profile'
+import { getAvatarFallback, getDisplayName, resolveAvatarUrl } from '@/utils/user-profile'
 
 const route = useRoute()
 const router = useRouter()
@@ -83,11 +84,11 @@ const isNavVisible = ref(false)
 const loginModalVisible = ref(false)
 const isLoginModal = ref(true)
 const pendingRedirect = ref('')
-const hideTimer = ref(null)
+const hideTimer = ref<number | null>(null)
 
 const clearHideTimer = () => {
   if (hideTimer.value) {
-    clearTimeout(hideTimer.value)
+    window.clearTimeout(hideTimer.value)
     hideTimer.value = null
   }
 }
@@ -116,7 +117,7 @@ const hideFixedNavbar = () => {
 
   clearHideTimer()
   isNavVisible.value = false
-  hideTimer.value = setTimeout(() => {
+  hideTimer.value = window.setTimeout(() => {
     if (getNavbarPhase(window.scrollY, NAVBAR_THRESHOLD) === 'static' && !isNavVisible.value) {
       isFixed.value = false
     }
@@ -147,7 +148,7 @@ const hydrateCurrentUser = async () => {
   }
 }
 
-const consumeLoginIntent = async (query) => {
+const consumeLoginIntent = async (query: Record<string, unknown>) => {
   if (query.login !== '1') {
     return
   }
@@ -155,7 +156,12 @@ const consumeLoginIntent = async (query) => {
   pendingRedirect.value = typeof query.redirect === 'string' ? query.redirect : ''
   showLoginModal(true)
 
-  const nextQuery = { ...query }
+  const nextQuery: LocationQueryRaw = {}
+  Object.entries(query).forEach(([key, value]) => {
+    if (typeof value === 'string' || Array.isArray(value) || typeof value === 'number' || value == null) {
+      nextQuery[key] = value as string | string[] | number | null | undefined
+    }
+  })
   delete nextQuery.login
   delete nextQuery.redirect
 
@@ -179,7 +185,7 @@ onUnmounted(() => {
 watch(
   () => route.query,
   (query) => {
-    consumeLoginIntent(query)
+    consumeLoginIntent(query as Record<string, unknown>)
   },
   { immediate: true },
 )
@@ -193,11 +199,11 @@ const activeMenu = computed(() => {
   return '/'
 })
 
-const userAvatar = computed(() => userStore.user?.avatar || '')
+const userAvatar = computed(() => resolveAvatarUrl(userStore.user?.avatar || ''))
 const displayName = computed(() => getDisplayName(userStore.user))
 const avatarFallback = computed(() => getAvatarFallback(userStore.user))
 
-const showLoginModal = (isLogin) => {
+const showLoginModal = (isLogin: boolean) => {
   isLoginModal.value = isLogin
   loginModalVisible.value = true
 }
