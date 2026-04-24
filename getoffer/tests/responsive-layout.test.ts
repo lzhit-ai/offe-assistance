@@ -38,15 +38,14 @@ test('mobile navbar uses a drawer menu instead of the full nav items', () => {
   assert.match(navbarSource, /@media \(max-width: 767px\)/)
 })
 
-test('mobile category drawer keeps only the important categories', () => {
+test('mobile category drawer reuses metadata-driven categories and hot tags', () => {
   assert.equal(existsSync(mobileCategoryDrawerPath), true)
   const mobileCategoryDrawerSource = readFileSync(mobileCategoryDrawerPath, 'utf8')
-  assert.match(mobileCategoryDrawerSource, /前端/)
-  assert.match(mobileCategoryDrawerSource, /后端/)
-  assert.match(mobileCategoryDrawerSource, /算法/)
-  assert.match(mobileCategoryDrawerSource, /Java/)
-  assert.match(mobileCategoryDrawerSource, /Vue/)
-  assert.match(mobileCategoryDrawerSource, /Spring/)
-  assert.match(mobileCategoryDrawerSource, /MySQL/)
-  assert.doesNotMatch(mobileCategoryDrawerSource, /面经精选/)
+  assert.match(mobileCategoryDrawerSource, /metadataApi\.getCategories/)
+  assert.match(mobileCategoryDrawerSource, /metadataApi\.getHotTags/)
+  assert.match(mobileCategoryDrawerSource, /技术方向/)
+  assert.match(mobileCategoryDrawerSource, /常用标签/)
+  assert.match(mobileCategoryDrawerSource, /visibleCategories/)
+  assert.match(mobileCategoryDrawerSource, /visibleTags/)
+  assert.match(mobileCategoryDrawerSource, /selectTag/)
 })
