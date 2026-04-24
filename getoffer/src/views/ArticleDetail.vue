@@ -23,6 +23,13 @@
           >
             {{ isFavorited ? '取消收藏' : '收藏' }}（{{ article.favoriteCount || 0 }}）
           </el-button>
+          <el-button
+            :type="isLiked ? 'default' : 'success'"
+            @click="toggleLike"
+            :icon="Pointer"
+          >
+            {{ isLiked ? '取消点赞' : '点赞' }}（{{ article.likeCount || 0 }}）
+          </el-button>
         </div>
       </template>
       <el-empty v-else description="文章不存在" />
@@ -30,21 +37,24 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { User, Calendar, View, Star } from '@element-plus/icons-vue'
+import { User, Calendar, View, Star, Pointer } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import Navbar from '@/components/Navbar.vue'
-import { articleApi, favoriteApi } from '@/api/frontend'
+import { articleApi, favoriteApi, likeApi } from '@/api/frontend'
+import type { ArticleItem } from '@/api/transformers'
 import { useUserStore } from '@/stores/admin'
 
 const route = useRoute()
 const userStore = useUserStore()
-const article = ref(null)
+const article = ref<ArticleItem | null>(null)
 const loading = ref(true)
 const isFavorited = ref(false)
+const isLiked = ref(false)
+const articleId = computed(() => (Array.isArray(route.params.id) ? route.params.id[0] : route.params.id))
 
 const renderedContent = computed(() => {
   return article.value ? marked(article.value.content || '') : ''
@@ -57,12 +67,14 @@ const emitFavoriteUpdated = () => {
 const fetchArticle = async () => {
   loading.value = true
   try {
-    const response = await articleApi.getDetail(route.params.id)
+    const response = await articleApi.getDetail(articleId.value)
     article.value = response.data
     isFavorited.value = Boolean(response.data?.isFavorited)
+    isLiked.value = Boolean(response.data?.liked)
   } catch (error) {
     article.value = null
-    ElMessage.error(error.message || '获取文章详情失败，请稍后重试')
+    const message = error instanceof Error ? error.message : '获取文章详情失败，请稍后重试'
+    ElMessage.error(message)
   } finally {
     loading.value = false
   }
@@ -76,14 +88,14 @@ const toggleFavorite = async () => {
 
   try {
     if (isFavorited.value) {
-      const response = await favoriteApi.remove(route.params.id)
+      const response = await favoriteApi.remove(Number(articleId.value))
       isFavorited.value = false
       if (article.value) {
         article.value.favoriteCount = response.data.favoriteCount ?? Math.max(0, article.value.favoriteCount - 1)
       }
       ElMessage.success('已取消收藏')
     } else {
-      const response = await favoriteApi.add(route.params.id)
+      const response = await favoriteApi.add(Number(articleId.value))
       isFavorited.value = true
       if (article.value) {
         article.value.favoriteCount = response.data.favoriteCount ?? article.value.favoriteCount + 1
@@ -93,7 +105,36 @@ const toggleFavorite = async () => {
 
     emitFavoriteUpdated()
   } catch (error) {
-    ElMessage.error(error.message || '操作失败')
+    const message = error instanceof Error ? error.message : '操作失败'
+    ElMessage.error(message)
+  }
+}
+
+const toggleLike = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  try {
+    if (isLiked.value) {
+      const response = await likeApi.remove(Number(articleId.value))
+      isLiked.value = false
+      if (article.value) {
+        article.value.likeCount = response.data.likeCount ?? Math.max(0, article.value.likeCount - 1)
+      }
+      ElMessage.success('已取消点赞')
+    } else {
+      const response = await likeApi.add(Number(articleId.value))
+      isLiked.value = true
+      if (article.value) {
+        article.value.likeCount = response.data.likeCount ?? article.value.likeCount + 1
+      }
+      ElMessage.success('点赞成功')
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '操作失败'
+    ElMessage.error(message)
   }
 }
 
@@ -143,6 +184,7 @@ watch(
 .actions {
   display: flex;
   justify-content: center;
+  gap: 12px;
   margin-top: 20px;
 }
 </style>

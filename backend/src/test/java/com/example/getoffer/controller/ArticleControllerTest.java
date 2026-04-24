@@ -81,7 +81,9 @@ class ArticleControllerTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.content").value("# 正文内容"))
                 .andExpect(jsonPath("$.data.canEdit").value(true))
-                .andExpect(jsonPath("$.data.isFavorited").value(false));
+                .andExpect(jsonPath("$.data.isFavorited").value(false))
+                .andExpect(jsonPath("$.data.likeCount").value(0))
+                .andExpect(jsonPath("$.data.liked").value(false));
 
         mockMvc.perform(put("/api/v1/articles/" + articleId)
                         .header("Authorization", "Bearer " + token)

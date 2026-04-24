@@ -16,6 +16,7 @@ import com.example.getoffer.dto.auth.UserStatsResponse;
 import com.example.getoffer.entity.User;
 import com.example.getoffer.repository.ArticleRepository;
 import com.example.getoffer.repository.FavoriteRepository;
+import com.example.getoffer.repository.LikeRepository;
 import com.example.getoffer.repository.UserRepository;
 
 @Service
@@ -27,19 +28,22 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final ArticleRepository articleRepository;
     private final FavoriteRepository favoriteRepository;
+    private final LikeRepository likeRepository;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        AuthenticationManager authenticationManager,
                        ArticleRepository articleRepository,
-                       FavoriteRepository favoriteRepository) {
+                       FavoriteRepository favoriteRepository,
+                       LikeRepository likeRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.articleRepository = articleRepository;
         this.favoriteRepository = favoriteRepository;
+        this.likeRepository = likeRepository;
     }
 
     public AuthPayload register(RegisterRequest request) {
@@ -98,7 +102,7 @@ public class AuthService {
         response.setStats(new UserStatsResponse(
                 articleRepository.countByAuthorId(user.getId()),
                 favoriteRepository.countByUserId(user.getId()),
-                0
+                likeRepository.countByArticleAuthorId(user.getId())
         ));
         return response;
     }

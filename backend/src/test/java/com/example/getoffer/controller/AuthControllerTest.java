@@ -13,6 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.example.getoffer.repository.ArticleRepository;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -20,6 +22,9 @@ class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ArticleRepository articleRepository;
 
     @Test
     void registerReturnsTokenAndUser() throws Exception {
@@ -76,6 +81,73 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.username").value("bob"))
                 .andExpect(jsonPath("$.data.role").value("USER"))
-                .andExpect(jsonPath("$.data.stats.favoriteCount").value(0));
+                .andExpect(jsonPath("$.data.stats.favoriteCount").value(0))
+                .andExpect(jsonPath("$.data.stats.likeCount").value(0));
+    }
+
+    @Test
+    void meReturnsTotalLikesReceivedByAuthorsArticles() throws Exception {
+        String authorResponse = mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "stats_author",
+                                  "phone": "13900139001",
+                                  "password": "abcdef"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String readerResponse = mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "stats_reader",
+                                  "phone": "13900139002",
+                                  "password": "abcdef"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String authorToken = JsonTestUtils.readJsonPath(authorResponse, "$.data.accessToken").toString();
+        String readerToken = JsonTestUtils.readJsonPath(readerResponse, "$.data.accessToken").toString();
+
+        String articleResponse = mockMvc.perform(post("/api/v1/articles")
+                        .header("Authorization", "Bearer " + authorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "获赞统计文章",
+                                  "category": "后端",
+                                  "type": 1,
+                                  "tags": ["Java"],
+                                  "content": "# like stats"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String articleId = JsonTestUtils.readJsonPath(articleResponse, "$.data.id").toString();
+        articleRepository.findById(Long.valueOf(articleId)).ifPresent(article -> {
+            article.setStatus("APPROVED");
+            articleRepository.save(article);
+        });
+
+        mockMvc.perform(post("/api/v1/articles/" + articleId + "/like")
+                        .header("Authorization", "Bearer " + readerToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + authorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.stats.likeCount").value(1));
     }
 }

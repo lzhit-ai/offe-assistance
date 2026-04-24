@@ -23,3 +23,8 @@ test('profile view renders moderation status labels for personal articles', () =
   assert.match(profileViewSource, /已通过/)
   assert.match(profileViewSource, /已拒绝/)
 })
+
+test('profile view renders like counter from user stats', () => {
+  assert.match(profileViewSource, /userInfo\.stats\.likeCount/)
+  assert.match(profileViewSource, /点赞/)
+})

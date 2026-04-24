@@ -21,6 +21,7 @@ import com.example.getoffer.entity.Article;
 import com.example.getoffer.entity.User;
 import com.example.getoffer.repository.ArticleRepository;
 import com.example.getoffer.repository.FavoriteRepository;
+import com.example.getoffer.repository.LikeRepository;
 import com.example.getoffer.service.CurrentUserService;
 
 import jakarta.persistence.criteria.JoinType;
@@ -33,13 +34,16 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final FavoriteRepository favoriteRepository;
+    private final LikeRepository likeRepository;
     private final CurrentUserService currentUserService;
 
     public ArticleService(ArticleRepository articleRepository,
                           FavoriteRepository favoriteRepository,
+                          LikeRepository likeRepository,
                           CurrentUserService currentUserService) {
         this.articleRepository = articleRepository;
         this.favoriteRepository = favoriteRepository;
+        this.likeRepository = likeRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -139,9 +143,12 @@ public class ArticleService {
         response.setUpdatedAt(article.getUpdatedAt());
         response.setViewCount(article.getViewCount());
         response.setFavoriteCount(article.getFavoriteCount());
+        response.setLikeCount(article.getLikeCount());
         response.setCommentCount(article.getCommentCount());
         response.setFavorited(currentUser != null
                 && favoriteRepository.existsByUserIdAndArticleId(currentUser.getId(), article.getId()));
+        response.setLiked(currentUser != null
+                && likeRepository.existsByUserIdAndArticleId(currentUser.getId(), article.getId()));
         return response;
     }
 
@@ -159,8 +166,10 @@ public class ArticleService {
         detail.setUpdatedAt(summary.getUpdatedAt());
         detail.setViewCount(summary.getViewCount());
         detail.setFavoriteCount(summary.getFavoriteCount());
+        detail.setLikeCount(summary.getLikeCount());
         detail.setCommentCount(summary.getCommentCount());
         detail.setFavorited(summary.isFavorited());
+        detail.setLiked(summary.isLiked());
         detail.setContent(article.getContent());
         detail.setCanEdit(currentUser != null && currentUser.getId().equals(article.getAuthor().getId()));
         return detail;

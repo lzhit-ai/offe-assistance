@@ -33,8 +33,10 @@ interface RawArticle {
   updatedAt?: string
   viewCount?: number
   favoriteCount?: number
+  likeCount?: number
   commentCount?: number
   isFavorited?: boolean
+  liked?: boolean
   content?: string
   canEdit?: boolean
 }
@@ -112,8 +114,10 @@ export interface ArticleItem {
   updatedAt: string
   viewCount: number
   favoriteCount: number
+  likeCount: number
   commentCount: number
   isFavorited: boolean
+  liked: boolean
   content: string
   canEdit: boolean
 }
@@ -274,8 +278,10 @@ export const mapArticle = (article: RawArticle = {}): ArticleItem => ({
   updatedAt: formatDate(article.updatedAt),
   viewCount: article.viewCount || 0,
   favoriteCount: article.favoriteCount || 0,
+  likeCount: article.likeCount || 0,
   commentCount: article.commentCount || 0,
   isFavorited: Boolean(article.isFavorited),
+  liked: Boolean(article.liked),
   content: article.content || '',
   canEdit: Boolean(article.canEdit),
 })

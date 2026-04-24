@@ -15,7 +15,9 @@ import com.example.getoffer.common.ApiResponse;
 import com.example.getoffer.common.PageResult;
 import com.example.getoffer.dto.article.ArticleDetailResponse;
 import com.example.getoffer.dto.article.ArticleSummaryResponse;
+import com.example.getoffer.dto.article.LikeToggleResponse;
 import com.example.getoffer.dto.article.ArticleUpsertRequest;
+import com.example.getoffer.service.article.ArticleLikeService;
 import com.example.getoffer.service.article.ArticleService;
 
 @RestController
@@ -23,9 +25,11 @@ import com.example.getoffer.service.article.ArticleService;
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final ArticleLikeService articleLikeService;
 
-    public ArticleController(ArticleService articleService) {
+    public ArticleController(ArticleService articleService, ArticleLikeService articleLikeService) {
         this.articleService = articleService;
+        this.articleLikeService = articleLikeService;
     }
 
     @GetMapping
@@ -56,6 +60,16 @@ public class ArticleController {
     @PostMapping
     public ApiResponse<ArticleDetailResponse> createArticle(@RequestBody ArticleUpsertRequest request) {
         return ApiResponse.success(articleService.createArticle(request));
+    }
+
+    @PostMapping("/{articleId}/like")
+    public ApiResponse<LikeToggleResponse> likeArticle(@PathVariable Long articleId) {
+        return ApiResponse.success(articleLikeService.like(articleId));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{articleId}/like")
+    public ApiResponse<LikeToggleResponse> unlikeArticle(@PathVariable Long articleId) {
+        return ApiResponse.success(articleLikeService.unlike(articleId));
     }
 
     @PutMapping("/{articleId}")

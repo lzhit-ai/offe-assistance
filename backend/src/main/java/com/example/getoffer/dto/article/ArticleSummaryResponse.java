@@ -18,9 +18,11 @@ public class ArticleSummaryResponse {
     private LocalDateTime updatedAt;
     private long viewCount;
     private long favoriteCount;
+    private long likeCount;
     private long commentCount;
     @JsonProperty("isFavorited")
     private boolean isFavorited;
+    private boolean liked;
 
     public Long getId() {
         return id;
@@ -114,6 +116,14 @@ public class ArticleSummaryResponse {
         return commentCount;
     }
 
+    public long getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(long likeCount) {
+        this.likeCount = likeCount;
+    }
+
     public void setCommentCount(long commentCount) {
         this.commentCount = commentCount;
     }
@@ -124,5 +134,13 @@ public class ArticleSummaryResponse {
 
     public void setFavorited(boolean favorited) {
         isFavorited = favorited;
+    }
+
+    public boolean isLiked() {
+        return liked;
+    }
+
+    public void setLiked(boolean liked) {
+        this.liked = liked;
     }
 }

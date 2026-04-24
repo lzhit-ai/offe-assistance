@@ -53,6 +53,9 @@ public class Article {
     @Column(name = "favorite_count", nullable = false)
     private long favoriteCount;
 
+    @Column(name = "like_count", nullable = false)
+    private long likeCount;
+
     @Column(name = "comment_count", nullable = false)
     private long commentCount;
 
@@ -169,6 +172,14 @@ public class Article {
 
     public long getCommentCount() {
         return commentCount;
+    }
+
+    public long getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(long likeCount) {
+        this.likeCount = likeCount;
     }
 
     public void setCommentCount(long commentCount) {

@@ -55,6 +55,12 @@ interface AdminArticleQuery extends ListParams {
   status?: string
 }
 
+interface LikeTogglePayload {
+  articleId?: number
+  liked?: boolean
+  likeCount?: number
+}
+
 const request = async <T>(config: AxiosRequestConfig): Promise<T> => {
   const response = await http<ApiEnvelope<T>>(config)
   const payload = response.data
@@ -280,6 +286,26 @@ export const favoriteApi = {
     })
 
     return toPagedResult(payload, mapArticle)
+  },
+}
+
+export const likeApi = {
+  async add(articleId: number | string) {
+    const payload = await request<LikeTogglePayload>({
+      url: `/api/v1/articles/${articleId}/like`,
+      method: 'post',
+    })
+
+    return { data: payload }
+  },
+
+  async remove(articleId: number | string) {
+    const payload = await request<LikeTogglePayload>({
+      url: `/api/v1/articles/${articleId}/like`,
+      method: 'delete',
+    })
+
+    return { data: payload }
   },
 }
 

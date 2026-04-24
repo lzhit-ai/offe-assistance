@@ -24,8 +24,10 @@ test('mapArticle normalizes backend article fields for the current UI', () => {
     updatedAt: '2026-04-20T12:00:00',
     viewCount: 45,
     favoriteCount: 9,
+    likeCount: 3,
     commentCount: 2,
     isFavorited: true,
+    liked: true,
     content: '# hello',
     canEdit: true,
   })
@@ -46,8 +48,10 @@ test('mapArticle normalizes backend article fields for the current UI', () => {
     updatedAt: '2026-04-20',
     viewCount: 45,
     favoriteCount: 9,
+    likeCount: 3,
     commentCount: 2,
     isFavorited: true,
+    liked: true,
     content: '# hello',
     canEdit: true,
   })
@@ -68,8 +72,10 @@ test('mapPageResult maps paged backend results and preserves pagination info', (
           createdAt: '2026-04-20T09:00:00',
           viewCount: 10,
           favoriteCount: 1,
+          likeCount: 2,
           commentCount: 0,
           isFavorited: false,
+          liked: false,
         },
       ],
       page: 1,
@@ -82,6 +88,8 @@ test('mapPageResult maps paged backend results and preserves pagination info', (
 
   assert.equal(result.list.length, 1)
   assert.equal(result.list[0].author, 'bob')
+  assert.equal(result.list[0].likeCount, 2)
+  assert.equal(result.list[0].liked, false)
   assert.equal(result.total, 1)
   assert.equal(result.hasMore, false)
 })
