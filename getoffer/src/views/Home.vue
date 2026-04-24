@@ -5,7 +5,7 @@
       <el-col :xs="24" :sm="6" :md="5" :lg="5" class="sidebar-col">
         <CategorySidebar />
       </el-col>
-      <el-col :xs="24" :sm="12" :md="14" :lg="14">
+      <el-col :xs="24" :sm="12" :md="14" :lg="14" class="content-col">
         <MobileCategoryDrawer />
 
         <div class="feed-header">
@@ -147,9 +147,16 @@ onMounted(async () => {
   text-align: right;
 }
 
-@media (max-width: 977px) {
+@media (max-width: 1024px) {
   .hot-panel-col {
     display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .content-col {
+    flex: 0 0 75%;
+    max-width: 75%;
   }
 }
 

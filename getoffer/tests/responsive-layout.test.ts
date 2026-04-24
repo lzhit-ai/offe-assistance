@@ -13,13 +13,22 @@ test('tablet breakpoint hides the right hot panel before collapsing the navbar',
   assert.match(homeSource, /:lg="5"/)
   assert.match(homeSource, /:md="5"/)
   assert.match(homeSource, /hot-panel-col/)
-  assert.match(homeSource, /@media \(max-width: 977px\)/)
+  assert.match(homeSource, /content-col/)
+  assert.match(homeSource, /@media \(min-width: 768px\) and \(max-width: 1024px\)/)
+  assert.match(homeSource, /flex:\s*0 0 75%/)
+  assert.match(homeSource, /@media \(max-width: 1024px\)/)
 
   assert.match(articleListSource, /hot-panel-col/)
-  assert.match(articleListSource, /@media \(max-width: 977px\)/)
+  assert.match(articleListSource, /content-col/)
+  assert.match(articleListSource, /@media \(min-width: 768px\) and \(max-width: 1024px\)/)
+  assert.match(articleListSource, /flex:\s*0 0 75%/)
+  assert.match(articleListSource, /@media \(max-width: 1024px\)/)
 
   assert.match(favoritesSource, /hot-panel-col/)
-  assert.match(favoritesSource, /@media \(max-width: 977px\)/)
+  assert.match(favoritesSource, /content-col/)
+  assert.match(favoritesSource, /@media \(min-width: 768px\) and \(max-width: 1024px\)/)
+  assert.match(favoritesSource, /flex:\s*0 0 75%/)
+  assert.match(favoritesSource, /@media \(max-width: 1024px\)/)
 })
 
 test('mobile navbar uses a drawer menu instead of the full nav items', () => {
