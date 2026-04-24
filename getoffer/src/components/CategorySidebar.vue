@@ -11,7 +11,7 @@
         :key="cat.name"
         :index="cat.name"
       >
-        <span>{{ cat.name }}</span>
+        <span class="category-name">{{ cat.name }}</span>
         <el-badge :value="cat.count" class="count-badge" type="info" />
       </el-menu-item>
     </el-menu>
@@ -132,12 +132,19 @@ watch(
 }
 
 .category-menu .el-menu-item {
-  height: 48px;
-  line-height: 48px;
+  min-height: 48px;
+  height: auto;
+  line-height: 1.4;
   margin: 4px 12px;
   border-radius: 14px;
   font-weight: 500;
   color: #3c3f4a;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  white-space: normal;
 }
 
 .category-menu .el-menu-item.is-active {
@@ -145,13 +152,22 @@ watch(
   color: #2563eb;
 }
 
+.category-name {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .count-badge {
   margin-left: auto;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   transform: none;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .tags-section {
