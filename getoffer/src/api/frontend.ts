@@ -10,6 +10,7 @@ import {
   mapAiMessage,
   mapAiSession,
   mapArticle,
+  mapComment,
   mapPageResult,
   mapUserProfile,
   type AdminAiSessionItem,
@@ -18,6 +19,7 @@ import {
   type AdminUserItem,
   type AiMessageItem,
   type AiSessionItem,
+  type ArticleCommentItem,
   type ArticleItem,
   type MetadataItem,
   type PageResult,
@@ -59,6 +61,10 @@ interface LikeTogglePayload {
   articleId?: number
   liked?: boolean
   likeCount?: number
+}
+
+interface CommentDraft {
+  content: string
 }
 
 const request = async <T>(config: AxiosRequestConfig): Promise<T> => {
@@ -302,6 +308,40 @@ export const likeApi = {
   async remove(articleId: number | string) {
     const payload = await request<LikeTogglePayload>({
       url: `/api/v1/articles/${articleId}/like`,
+      method: 'delete',
+    })
+
+    return { data: payload }
+  },
+}
+
+export const commentApi = {
+  async getList(articleId: number | string) {
+    const payload = await request<ArticleCommentItem[]>({
+      url: `/api/v1/articles/${articleId}/comments`,
+      method: 'get',
+    })
+
+    return {
+      data: Array.isArray(payload) ? payload.map(mapComment) : [],
+    }
+  },
+
+  async add(articleId: number | string, data: CommentDraft) {
+    const payload = await request<ArticleCommentItem>({
+      url: `/api/v1/articles/${articleId}/comments`,
+      method: 'post',
+      data,
+    })
+
+    return {
+      data: mapComment(payload),
+    }
+  },
+
+  async remove(articleId: number | string, commentId: number | string) {
+    const payload = await request<{ commentId?: number; commentCount?: number }>({
+      url: `/api/v1/articles/${articleId}/comments/${commentId}`,
       method: 'delete',
     })
 

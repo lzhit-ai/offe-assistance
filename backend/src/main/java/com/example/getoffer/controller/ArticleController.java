@@ -15,9 +15,13 @@ import com.example.getoffer.common.ApiResponse;
 import com.example.getoffer.common.PageResult;
 import com.example.getoffer.dto.article.ArticleDetailResponse;
 import com.example.getoffer.dto.article.ArticleSummaryResponse;
-import com.example.getoffer.dto.article.LikeToggleResponse;
 import com.example.getoffer.dto.article.ArticleUpsertRequest;
+import com.example.getoffer.dto.article.LikeToggleResponse;
+import com.example.getoffer.dto.comment.ArticleCommentCreateRequest;
+import com.example.getoffer.dto.comment.ArticleCommentDeleteResponse;
+import com.example.getoffer.dto.comment.ArticleCommentResponse;
 import com.example.getoffer.service.article.ArticleLikeService;
+import com.example.getoffer.service.article.ArticleCommentService;
 import com.example.getoffer.service.article.ArticleService;
 
 @RestController
@@ -26,10 +30,14 @@ public class ArticleController {
 
     private final ArticleService articleService;
     private final ArticleLikeService articleLikeService;
+    private final ArticleCommentService articleCommentService;
 
-    public ArticleController(ArticleService articleService, ArticleLikeService articleLikeService) {
+    public ArticleController(ArticleService articleService,
+                             ArticleLikeService articleLikeService,
+                             ArticleCommentService articleCommentService) {
         this.articleService = articleService;
         this.articleLikeService = articleLikeService;
+        this.articleCommentService = articleCommentService;
     }
 
     @GetMapping
@@ -65,6 +73,23 @@ public class ArticleController {
     @PostMapping("/{articleId}/like")
     public ApiResponse<LikeToggleResponse> likeArticle(@PathVariable Long articleId) {
         return ApiResponse.success(articleLikeService.like(articleId));
+    }
+
+    @GetMapping("/{articleId}/comments")
+    public ApiResponse<List<ArticleCommentResponse>> listComments(@PathVariable Long articleId) {
+        return ApiResponse.success(articleCommentService.listComments(articleId));
+    }
+
+    @PostMapping("/{articleId}/comments")
+    public ApiResponse<ArticleCommentResponse> createComment(@PathVariable Long articleId,
+                                                             @RequestBody ArticleCommentCreateRequest request) {
+        return ApiResponse.success(articleCommentService.createComment(articleId, request));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{articleId}/comments/{commentId}")
+    public ApiResponse<ArticleCommentDeleteResponse> deleteComment(@PathVariable Long articleId,
+                                                                   @PathVariable Long commentId) {
+        return ApiResponse.success(articleCommentService.deleteComment(articleId, commentId));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{articleId}/like")

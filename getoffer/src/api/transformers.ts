@@ -5,6 +5,7 @@ interface RawAuthor {
   id?: number
   username?: string
   nickname?: string
+  avatar?: string
 }
 
 interface RawStats {
@@ -39,6 +40,14 @@ interface RawArticle {
   liked?: boolean
   content?: string
   canEdit?: boolean
+}
+
+interface RawArticleComment {
+  id?: number
+  content?: string
+  createdAt?: string
+  author?: RawAuthor
+  canDelete?: boolean
 }
 
 interface RawUserProfile {
@@ -120,6 +129,14 @@ export interface ArticleItem {
   liked: boolean
   content: string
   canEdit: boolean
+}
+
+export interface ArticleCommentItem {
+  id?: number
+  content: string
+  createdAt: string
+  author: RawAuthor
+  canDelete: boolean
 }
 
 export interface UserStats {
@@ -284,6 +301,14 @@ export const mapArticle = (article: RawArticle = {}): ArticleItem => ({
   liked: Boolean(article.liked),
   content: article.content || '',
   canEdit: Boolean(article.canEdit),
+})
+
+export const mapComment = (comment: RawArticleComment = {}): ArticleCommentItem => ({
+  id: comment.id,
+  content: comment.content || '',
+  createdAt: formatDateTime(comment.createdAt),
+  author: comment.author || {},
+  canDelete: Boolean(comment.canDelete),
 })
 
 export const mapPageResult = <TInput, TOutput>(

@@ -41,7 +41,7 @@
         </el-icon>
         收藏 {{ favoriteCount }}
       </el-button>
-      <el-button text :icon="ChatLineRound">
+      <el-button text :icon="ChatLineRound" @click.stop="goToComments">
         {{ article.commentCount || 0 }}
       </el-button>
       <el-button
@@ -57,20 +57,18 @@
   </el-card>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Calendar, View, Star, ChatLineRound, StarFilled, Edit } from '@element-plus/icons-vue'
 import { favoriteApi } from '@/api/frontend'
+import type { ArticleItem } from '@/api/transformers'
 import { useUserStore } from '@/stores/admin'
 
-const props = defineProps({
-  article: {
-    type: Object,
-    required: true,
-  },
-})
+const props = defineProps<{
+  article: ArticleItem
+}>()
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -98,6 +96,13 @@ const goToDetail = () => {
   router.push(`/article/${props.article.id}`)
 }
 
+const goToComments = () => {
+  router.push({
+    path: `/article/${props.article.id}`,
+    query: { focus: 'comments' },
+  })
+}
+
 const emitFavoriteUpdated = () => {
   window.dispatchEvent(new Event('favorites-updated'))
 }
@@ -110,12 +115,12 @@ const toggleFavorite = async () => {
 
   try {
     if (isFavorited.value) {
-      const response = await favoriteApi.remove(props.article.id)
+      const response = await favoriteApi.remove(props.article.id || 0)
       isFavorited.value = false
       favoriteCount.value = response.data.favoriteCount ?? Math.max(0, favoriteCount.value - 1)
       ElMessage.success('已取消收藏')
     } else {
-      const response = await favoriteApi.add(props.article.id)
+      const response = await favoriteApi.add(props.article.id || 0)
       isFavorited.value = true
       favoriteCount.value = response.data.favoriteCount ?? favoriteCount.value + 1
       ElMessage.success('收藏成功')
@@ -123,7 +128,8 @@ const toggleFavorite = async () => {
 
     emitFavoriteUpdated()
   } catch (error) {
-    ElMessage.error(error.message || '操作失败')
+    const message = error instanceof Error ? error.message : '操作失败'
+    ElMessage.error(message)
   }
 }
 
