@@ -2,6 +2,7 @@ package com.example.getoffer.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.RequestPostProcessor.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -149,5 +150,50 @@ class AuthControllerTest {
                         .header("Authorization", "Bearer " + authorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.stats.likeCount").value(1));
+    }
+
+    @Test
+    void loginRateLimitBlocksRepeatedFailuresFromSameIp() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "limited_user",
+                                  "phone": "13900139003",
+                                  "password": "abcdef"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .with(request -> {
+                                request.setRemoteAddr("10.0.0.8");
+                                return request;
+                            })
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "username": "limited_user",
+                                      "password": "wrong-pass"
+                                    }
+                                    """))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .with(request -> {
+                            request.setRemoteAddr("10.0.0.8");
+                            return request;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "limited_user",
+                                  "password": "wrong-pass"
+                                }
+                                """))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value(42901));
     }
 }

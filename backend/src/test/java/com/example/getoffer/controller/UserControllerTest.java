@@ -87,6 +87,15 @@ class UserControllerTest {
     }
 
     @Test
+    void updateProfilePreflightRejectsUnknownOrigin() throws Exception {
+        mockMvc.perform(options("/api/v1/users/me/profile")
+                        .header("Origin", "https://evil.example")
+                        .header("Access-Control-Request-Method", "PATCH")
+                        .header("Access-Control-Request-Headers", "content-type,authorization"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void uploadAvatarStoresImageAndReturnsAvatarPath() throws Exception {
         String token = TestAuthHelper.registerAndGetToken(mockMvc, "avatar_user", "13800138012", "123456");
         MockMultipartFile file = new MockMultipartFile(
@@ -126,6 +135,22 @@ class UserControllerTest {
                 "avatar.txt",
                 MediaType.TEXT_PLAIN_VALUE,
                 "plain-text".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/api/v1/users/me/avatar")
+                        .file(file)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40001));
+    }
+
+    @Test
+    void uploadAvatarRejectsSvgFile() throws Exception {
+        String token = TestAuthHelper.registerAndGetToken(mockMvc, "avatar_user_svg", "13800138014", "123456");
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "avatar.svg",
+                "image/svg+xml",
+                "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(multipart("/api/v1/users/me/avatar")
                         .file(file)

@@ -29,6 +29,7 @@ public class AuthService {
     private final ArticleRepository articleRepository;
     private final FavoriteRepository favoriteRepository;
     private final LikeRepository likeRepository;
+    private final LoginRateLimitService loginRateLimitService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
@@ -36,7 +37,8 @@ public class AuthService {
                        AuthenticationManager authenticationManager,
                        ArticleRepository articleRepository,
                        FavoriteRepository favoriteRepository,
-                       LikeRepository likeRepository) {
+                       LikeRepository likeRepository,
+                       LoginRateLimitService loginRateLimitService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -44,12 +46,13 @@ public class AuthService {
         this.articleRepository = articleRepository;
         this.favoriteRepository = favoriteRepository;
         this.likeRepository = likeRepository;
+        this.loginRateLimitService = loginRateLimitService;
     }
 
     public AuthPayload register(RegisterRequest request) {
         validateRegisterRequest(request);
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("用户名已存在");
+            throw new IllegalArgumentException("username already exists");
         }
 
         User user = new User();
@@ -62,21 +65,25 @@ public class AuthService {
         return new AuthPayload(token, toUserProfile(user));
     }
 
-    public AuthPayload login(LoginRequest request) {
+    public AuthPayload login(LoginRequest request, String clientIp) {
         if (isBlank(request.getUsername()) || isBlank(request.getPassword())) {
-            throw new IllegalArgumentException("用户名和密码不能为空");
+            throw new IllegalArgumentException("username and password are required");
         }
+
+        loginRateLimitService.checkAllowed(request.getUsername(), clientIp);
 
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
         } catch (Exception ex) {
-            throw new BadCredentialsException("用户名或密码错误");
+            loginRateLimitService.recordFailure(request.getUsername(), clientIp);
+            throw new BadCredentialsException("invalid credentials");
         }
 
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BadCredentialsException("用户名或密码错误"));
+                .orElseThrow(() -> new BadCredentialsException("invalid credentials"));
 
+        loginRateLimitService.recordSuccess(request.getUsername(), clientIp);
         String token = jwtService.generateToken(user.getUsername());
         return new AuthPayload(token, toUserProfile(user));
     }
@@ -85,7 +92,7 @@ public class AuthService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
         return toUserProfile(user);
     }
 
@@ -109,16 +116,16 @@ public class AuthService {
 
     private void validateRegisterRequest(RegisterRequest request) {
         if (isBlank(request.getUsername()) || isBlank(request.getPhone()) || isBlank(request.getPassword())) {
-            throw new IllegalArgumentException("用户名、手机号和密码不能为空");
+            throw new IllegalArgumentException("username, phone, and password are required");
         }
         if (request.getUsername().trim().length() < 3 || request.getUsername().trim().length() > 20) {
-            throw new IllegalArgumentException("用户名长度需在 3 到 20 之间");
+            throw new IllegalArgumentException("username length must be between 3 and 20");
         }
         if (!request.getPhone().matches("^1[3-9]\\d{9}$")) {
-            throw new IllegalArgumentException("手机号格式不正确");
+            throw new IllegalArgumentException("invalid phone number");
         }
         if (request.getPassword().length() < 6) {
-            throw new IllegalArgumentException("密码长度至少为 6 位");
+            throw new IllegalArgumentException("password must be at least 6 characters");
         }
     }
 

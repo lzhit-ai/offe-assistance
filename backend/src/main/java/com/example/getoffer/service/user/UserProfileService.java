@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +24,12 @@ public class UserProfileService {
 
     private static final int MAX_NICKNAME_LENGTH = 10;
     private static final long MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+    private static final Set<String> ALLOWED_AVATAR_CONTENT_TYPES = Set.of(
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+    );
+    private static final Set<String> ALLOWED_AVATAR_EXTENSIONS = Set.of(".png", ".jpg", ".jpeg", ".webp");
 
     private final UserRepository userRepository;
     private final AuthService authService;
@@ -36,7 +44,7 @@ public class UserProfileService {
 
     public UserProfileResponse updateProfile(String username, UpdateProfileRequest request) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
         String nickname = normalizeNickname(request == null ? null : request.getNickname());
         validateNickname(nickname, user.getId());
@@ -49,7 +57,7 @@ public class UserProfileService {
         validateAvatarFile(file);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
         try {
             Path avatarDir = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("avatars");
@@ -64,7 +72,7 @@ public class UserProfileService {
             userRepository.save(user);
             return new AvatarUploadResponse(avatarPath);
         } catch (IOException ex) {
-            throw new IllegalStateException("头像上传失败", ex);
+            throw new IllegalStateException("avatar upload failed", ex);
         }
     }
 
@@ -74,11 +82,11 @@ public class UserProfileService {
 
     private void validateNickname(String nickname, Long userId) {
         if (nickname.isEmpty()) {
-            throw new IllegalArgumentException("昵称不能为空");
+            throw new IllegalArgumentException("nickname is required");
         }
 
         if (nickname.codePointCount(0, nickname.length()) > MAX_NICKNAME_LENGTH) {
-            throw new IllegalArgumentException("昵称最长 10 个字符");
+            throw new IllegalArgumentException("nickname must be 10 characters or fewer");
         }
 
         if (userRepository.existsByNicknameAndIdNot(nickname, userId)) {
@@ -88,27 +96,39 @@ public class UserProfileService {
 
     private void validateAvatarFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("头像文件不能为空");
+            throw new IllegalArgumentException("avatar file is required");
         }
 
-        if (file.getContentType() == null || !file.getContentType().startsWith("image/")) {
-            throw new IllegalArgumentException("请上传图片文件");
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("please upload a PNG, JPG, or WEBP image");
         }
 
         if (file.getSize() > MAX_AVATAR_SIZE) {
-            throw new IllegalArgumentException("头像大小不能超过 2MB");
+            throw new IllegalArgumentException("avatar file must be 2MB or smaller");
+        }
+
+        String extension = extractFileExtension(file.getOriginalFilename());
+        if (!ALLOWED_AVATAR_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("please upload a PNG, JPG, or WEBP image");
         }
     }
 
     private String buildAvatarFilename(Long userId, String originalFilename) {
-        String extension = "";
-        if (originalFilename != null) {
-            int index = originalFilename.lastIndexOf('.');
-            if (index >= 0) {
-                extension = originalFilename.substring(index);
-            }
+        String extension = extractFileExtension(originalFilename);
+        return userId + "-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().replace("-", "") + extension;
+    }
+
+    private String extractFileExtension(String originalFilename) {
+        if (originalFilename == null) {
+            return "";
         }
 
-        return userId + "-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().replace("-", "") + extension;
+        int index = originalFilename.lastIndexOf('.');
+        if (index < 0) {
+            return "";
+        }
+
+        return originalFilename.substring(index).toLowerCase(Locale.ROOT);
     }
 }

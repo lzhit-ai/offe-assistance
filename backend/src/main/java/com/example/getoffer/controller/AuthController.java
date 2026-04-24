@@ -2,6 +2,8 @@ package com.example.getoffer.controller;
 
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,12 +29,12 @@ public class AuthController {
 
     @PostMapping("/register")
     public ApiResponse<AuthPayload> register(@RequestBody RegisterRequest request) {
-        return ApiResponse.success("注册成功", authService.register(request));
+        return ApiResponse.success("register success", authService.register(request));
     }
 
     @PostMapping("/login")
-    public ApiResponse<AuthPayload> login(@RequestBody LoginRequest request) {
-        return ApiResponse.success("登录成功", authService.login(request));
+    public ApiResponse<AuthPayload> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        return ApiResponse.success("login success", authService.login(request, extractClientIp(httpRequest)));
     }
 
     @GetMapping("/me")
@@ -42,6 +44,15 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ApiResponse<Map<String, Object>> logout() {
-        return ApiResponse.success("退出成功", Map.of("success", true));
+        return ApiResponse.success("logout success", Map.of("success", true));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+
+        return request.getRemoteAddr();
     }
 }
