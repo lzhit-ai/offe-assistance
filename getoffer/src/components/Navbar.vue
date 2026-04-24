@@ -24,33 +24,109 @@
       </el-menu>
 
       <div class="user-area">
-        <el-button v-if="userStore.isLoggedIn" type="default" round @click="goToUpload">
-          上传
-        </el-button>
+        <div class="desktop-actions">
+          <el-button v-if="userStore.isLoggedIn" type="default" round @click="goToUpload">
+            上传
+          </el-button>
 
-        <template v-if="!userStore.isLoggedIn">
-          <el-button type="primary" round @click="showLoginModal(true)">登录</el-button>
-          <el-button type="default" round @click="showLoginModal(false)">注册</el-button>
-        </template>
+          <template v-if="!userStore.isLoggedIn">
+            <el-button type="primary" round @click="showLoginModal(true)">登录</el-button>
+            <el-button type="default" round @click="showLoginModal(false)">注册</el-button>
+          </template>
 
-        <el-dropdown v-else trigger="click">
-          <div class="user-avatar-wrapper">
+          <el-dropdown v-else trigger="click">
+            <div class="user-avatar-wrapper">
+              <el-avatar :size="36" :src="userAvatar" class="user-avatar">
+                {{ avatarFallback }}
+              </el-avatar>
+              <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item disabled>
+                  {{ displayName }}
+                </el-dropdown-item>
+                <el-dropdown-item divided @click="goToProfile">个人中心</el-dropdown-item>
+                <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+
+        <div class="mobile-user-actions">
+          <el-button
+            v-if="!userStore.isLoggedIn"
+            class="mobile-login-trigger"
+            type="primary"
+            round
+            @click="showLoginModal(true)"
+          >
+            登录
+          </el-button>
+
+          <router-link v-else to="/profile" class="mobile-avatar-link" aria-label="个人中心">
             <el-avatar :size="36" :src="userAvatar" class="user-avatar">
               {{ avatarFallback }}
             </el-avatar>
-            <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item disabled>
-                {{ displayName }}
-              </el-dropdown-item>
-              <el-dropdown-item divided @click="goToProfile">个人中心</el-dropdown-item>
-              <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+          </router-link>
+
+          <el-button
+            class="mobile-menu-trigger"
+            circle
+            text
+            bg
+            aria-label="打开菜单"
+            @click="mobileDrawerVisible = true"
+          >
+            <el-icon><Menu /></el-icon>
+          </el-button>
+        </div>
       </div>
+
+      <el-drawer
+        v-model="mobileDrawerVisible"
+        direction="rtl"
+        size="300px"
+        class="mobile-nav-drawer"
+        title="导航"
+      >
+        <div class="mobile-nav">
+          <div class="mobile-nav-section">
+            <el-button text class="mobile-nav-link" @click="navigateTo('/')">首页</el-button>
+            <el-button text class="mobile-nav-link" @click="navigateTo('/articles/tech')">八股题</el-button>
+            <el-button text class="mobile-nav-link" @click="navigateTo('/articles/interview')">
+              面试经历
+            </el-button>
+            <el-button text class="mobile-nav-link" @click="navigateTo('/favorites')">收藏</el-button>
+            <el-button text class="mobile-nav-link" @click="navigateTo('/ai')">AI 助手</el-button>
+            <el-button text class="mobile-nav-link" @click="goToUpload">上传</el-button>
+          </div>
+
+          <div class="mobile-nav-section mobile-user-section">
+            <template v-if="userStore.isLoggedIn">
+              <div class="mobile-user-card">
+                <el-avatar :size="40" :src="userAvatar" class="user-avatar">
+                  {{ avatarFallback }}
+                </el-avatar>
+                <div class="mobile-user-info">
+                  <strong>{{ displayName }}</strong>
+                  <span>{{ userStore.user?.username }}</span>
+                </div>
+              </div>
+
+              <el-button text class="mobile-nav-link" @click="goToProfile">个人中心</el-button>
+              <el-button text class="mobile-nav-link danger-link" @click="handleLogout">
+                退出登录
+              </el-button>
+            </template>
+
+            <template v-else>
+              <el-button text class="mobile-nav-link" @click="openLoginFromDrawer(true)">登录</el-button>
+              <el-button text class="mobile-nav-link" @click="openLoginFromDrawer(false)">注册</el-button>
+            </template>
+          </div>
+        </div>
+      </el-drawer>
 
       <LoginModal
         v-model:visible="loginModalVisible"
@@ -65,7 +141,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { LocationQueryRaw } from 'vue-router'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, Menu } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import LoginModal from './LoginModal.vue'
 import { authApi } from '@/api/frontend'
@@ -84,6 +160,7 @@ const isNavVisible = ref(false)
 const loginModalVisible = ref(false)
 const isLoginModal = ref(true)
 const pendingRedirect = ref('')
+const mobileDrawerVisible = ref(false)
 const hideTimer = ref<number | null>(null)
 
 const clearHideTimer = () => {
@@ -208,6 +285,11 @@ const showLoginModal = (isLogin: boolean) => {
   loginModalVisible.value = true
 }
 
+const openLoginFromDrawer = (isLogin: boolean) => {
+  mobileDrawerVisible.value = false
+  showLoginModal(isLogin)
+}
+
 const handleLoginSuccess = () => {
   const target = pendingRedirect.value
   pendingRedirect.value = ''
@@ -217,17 +299,25 @@ const handleLoginSuccess = () => {
   }
 }
 
+const navigateTo = (path: string) => {
+  mobileDrawerVisible.value = false
+  router.push(path)
+}
+
 const goToUpload = () => {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
+    mobileDrawerVisible.value = false
     showLoginModal(true)
     return
   }
 
+  mobileDrawerVisible.value = false
   router.push('/upload')
 }
 
 const goToProfile = () => {
+  mobileDrawerVisible.value = false
   router.push('/profile')
 }
 
@@ -238,6 +328,7 @@ const handleLogout = async () => {
     console.error('logout failed', error)
   } finally {
     pendingRedirect.value = ''
+    mobileDrawerVisible.value = false
     userStore.logout()
     router.push('/')
   }
@@ -324,6 +415,18 @@ const handleLogout = async () => {
   align-items: center;
 }
 
+.desktop-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.mobile-user-actions {
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
 .user-avatar-wrapper {
   display: flex;
   align-items: center;
@@ -349,6 +452,59 @@ const handleLogout = async () => {
   color: #6b7280;
 }
 
+.mobile-avatar-link {
+  display: inline-flex;
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.mobile-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-nav-link {
+  justify-content: flex-start;
+  width: 100%;
+  padding: 12px 0;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.mobile-user-section {
+  padding-top: 20px;
+  border-top: 1px solid #eef0f4;
+}
+
+.mobile-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.mobile-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #475569;
+}
+
+.mobile-user-info strong {
+  color: #0f172a;
+}
+
+.danger-link {
+  color: #dc2626;
+}
+
 @media (max-width: 960px) {
   .navbar {
     padding: 0 16px;
@@ -357,6 +513,32 @@ const handleLogout = async () => {
 
   .nav-menu {
     margin-left: 12px;
+  }
+}
+
+@media (max-width: 767px) {
+  .navbar-container {
+    height: 56px;
+    margin-bottom: 20px;
+  }
+
+  .navbar {
+    height: 56px;
+    border-radius: 28px;
+    padding: 0 14px;
+  }
+
+  .logo {
+    font-size: 18px;
+  }
+
+  .nav-menu,
+  .desktop-actions {
+    display: none;
+  }
+
+  .mobile-user-actions {
+    display: flex;
   }
 }
 </style>

@@ -2,10 +2,12 @@
   <div>
     <Navbar />
     <el-row :gutter="20">
-      <el-col :xs="24" :sm="6" :md="5">
+      <el-col :xs="24" :sm="6" :md="5" class="sidebar-col">
         <CategorySidebar />
       </el-col>
       <el-col :xs="24" :sm="12" :md="14">
+        <MobileCategoryDrawer />
+
         <div class="favorites-header">
           <h2>
             <el-icon class="favorites-icon"><StarFilled /></el-icon>
@@ -42,7 +44,7 @@
           </div>
         </template>
       </el-col>
-      <el-col :xs="24" :sm="6" :md="5">
+      <el-col :xs="24" :sm="6" :md="5" class="hot-panel-col">
         <HotPanel />
       </el-col>
     </el-row>
@@ -55,37 +57,43 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { StarFilled } from '@element-plus/icons-vue'
 import Navbar from '@/components/Navbar.vue'
 import CategorySidebar from '@/components/CategorySidebar.vue'
+import MobileCategoryDrawer from '@/components/MobileCategoryDrawer.vue'
 import ArticleCard from '@/components/ArticleCard.vue'
 import HotPanel from '@/components/HotPanel.vue'
 import LoginModal from '@/components/LoginModal.vue'
 import { favoriteApi } from '@/api/frontend'
+import type { ArticleItem, PageResult } from '@/api/transformers'
 import { useUserStore } from '@/stores/admin'
 import { FAVORITES_PAGE_SIZE } from '@/utils/pagination'
 
 const userStore = useUserStore()
-const favoriteArticles = ref([])
+const favoriteArticles = ref<ArticleItem[]>([])
 const loading = ref(false)
 const loginModalVisible = ref(false)
 const currentPage = ref(1)
-const pagination = ref({
+const pagination = ref<PageResult<ArticleItem>>({
+  list: [],
   page: 1,
   pageSize: FAVORITES_PAGE_SIZE,
   total: 0,
+  hasMore: false,
 })
 
 const fetchFavorites = async (page = currentPage.value) => {
   if (!userStore.isLoggedIn) {
     favoriteArticles.value = []
     pagination.value = {
+      list: [],
       page: 1,
       pageSize: FAVORITES_PAGE_SIZE,
       total: 0,
+      hasMore: false,
     }
     return
   }
@@ -102,11 +110,13 @@ const fetchFavorites = async (page = currentPage.value) => {
   } catch (error) {
     favoriteArticles.value = []
     pagination.value = {
+      list: [],
       page: 1,
       pageSize: FAVORITES_PAGE_SIZE,
       total: 0,
+      hasMore: false,
     }
-    ElMessage.error(error.message || '获取收藏失败')
+    ElMessage.error(error instanceof Error ? error.message : '获取收藏失败')
   } finally {
     loading.value = false
   }
@@ -120,7 +130,7 @@ const handleFavoritesUpdated = () => {
   fetchFavorites(currentPage.value)
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = (page: number) => {
   fetchFavorites(page)
 }
 
@@ -143,6 +153,10 @@ watch(
 </script>
 
 <style scoped>
+.sidebar-col {
+  display: block;
+}
+
 .favorites-header {
   margin-bottom: 20px;
 }
@@ -164,5 +178,17 @@ watch(
   display: flex;
   justify-content: center;
   margin: 24px 0 8px;
+}
+
+@media (max-width: 977px) {
+  .hot-panel-col {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar-col {
+    display: none;
+  }
 }
 </style>

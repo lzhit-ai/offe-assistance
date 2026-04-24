@@ -2,10 +2,12 @@
   <div>
     <Navbar />
     <el-row :gutter="20">
-      <el-col :xs="24" :sm="6" :md="5">
+      <el-col :xs="24" :sm="6" :md="5" class="sidebar-col">
         <CategorySidebar />
       </el-col>
       <el-col :xs="24" :sm="12" :md="14">
+        <MobileCategoryDrawer />
+
         <div class="list-header">
           <el-button-group>
             <el-button
@@ -56,23 +58,26 @@
           />
         </div>
       </el-col>
-      <el-col :xs="24" :sm="6" :md="5">
+      <el-col :xs="24" :sm="6" :md="5" class="hot-panel-col">
         <HotPanel />
       </el-col>
     </el-row>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import type { LocationQueryRaw } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import Navbar from '@/components/Navbar.vue'
 import CategorySidebar from '@/components/CategorySidebar.vue'
+import MobileCategoryDrawer from '@/components/MobileCategoryDrawer.vue'
 import ArticleCard from '@/components/ArticleCard.vue'
 import HotPanel from '@/components/HotPanel.vue'
 import { articleApi } from '@/api/frontend'
+import type { ArticleItem, PageResult } from '@/api/transformers'
 import {
   ARTICLE_LIST_PAGE_SIZE,
   parsePage,
@@ -82,18 +87,23 @@ import {
 
 const route = useRoute()
 const router = useRouter()
-const articles = ref([])
+const articles = ref<ArticleItem[]>([])
 const loading = ref(false)
-const searchKeyword = ref(route.query.keyword || '')
-const pagination = ref({
+const searchKeyword = ref(typeof route.query.keyword === 'string' ? route.query.keyword : '')
+const pagination = ref<PageResult<ArticleItem>>({
+  list: [],
   page: 1,
   pageSize: ARTICLE_LIST_PAGE_SIZE,
   total: 0,
+  hasMore: false,
 })
 
 const activeTab = computed(() => (route.params.type === 'tech' ? 'tech' : 'interview'))
 
-const switchTab = (type) => {
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
+
+const switchTab = (type: string) => {
   router.push({
     name: 'articleList',
     params: { type },
@@ -105,10 +115,10 @@ const fetchArticles = async () => {
   loading.value = true
   try {
     const response = await articleApi.getList({
-      type: route.params.type,
-      keyword: route.query.keyword || '',
-      category: route.query.category || '',
-      tag: route.query.tag || '',
+      type: typeof route.params.type === 'string' ? route.params.type : undefined,
+      keyword: typeof route.query.keyword === 'string' ? route.query.keyword : '',
+      category: typeof route.query.category === 'string' ? route.query.category : '',
+      tag: typeof route.query.tag === 'string' ? route.query.tag : '',
       page: parsePage(route.query.page),
       pageSize: ARTICLE_LIST_PAGE_SIZE,
     })
@@ -118,11 +128,13 @@ const fetchArticles = async () => {
   } catch (error) {
     articles.value = []
     pagination.value = {
+      list: [],
       page: 1,
       pageSize: ARTICLE_LIST_PAGE_SIZE,
       total: 0,
+      hasMore: false,
     }
-    ElMessage.error(error.message || '获取文章列表失败')
+    ElMessage.error(getErrorMessage(error, '获取文章列表失败'))
   } finally {
     loading.value = false
   }
@@ -140,15 +152,15 @@ const handleSearch = () => {
   router.push({
     name: 'articleList',
     params: { type: activeTab.value },
-    query: nextQuery,
+    query: nextQuery as LocationQueryRaw,
   })
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = (page: number) => {
   router.push({
     name: 'articleList',
     params: { type: activeTab.value },
-    query: withPageInQuery(route.query, page),
+    query: withPageInQuery(route.query, page) as LocationQueryRaw,
   })
 }
 
@@ -157,13 +169,17 @@ onMounted(fetchArticles)
 watch(
   () => route.fullPath,
   () => {
-    searchKeyword.value = route.query.keyword || ''
+    searchKeyword.value = typeof route.query.keyword === 'string' ? route.query.keyword : ''
     fetchArticles()
   },
 )
 </script>
 
 <style scoped>
+.sidebar-col {
+  display: block;
+}
+
 .list-header {
   display: flex;
   align-items: center;
@@ -185,6 +201,12 @@ watch(
   margin: 24px 0 8px;
 }
 
+@media (max-width: 977px) {
+  .hot-panel-col {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .list-header {
     flex-direction: column;
@@ -193,6 +215,12 @@ watch(
 
   .search-input {
     width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar-col {
+    display: none;
   }
 }
 </style>
