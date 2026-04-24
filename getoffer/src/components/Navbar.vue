@@ -7,7 +7,10 @@
         'navbar-visible': isNavVisible,
       }"
     >
-      <router-link to="/" class="logo">面经 · 八股</router-link>
+      <router-link to="/" class="logo">
+        <img src="/logo-favicon.png" alt="面经·八股 logo" class="brand-logo">
+        <span class="brand-text">面经 · 八股</span>
+      </router-link>
 
       <el-menu
         mode="horizontal"
@@ -379,6 +382,9 @@ const handleLogout = async () => {
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   font-size: 20px;
   background: linear-gradient(135deg, #2563eb, #7c3aed);
@@ -387,6 +393,20 @@ const handleLogout = async () => {
   color: transparent;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.brand-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  background: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .nav-menu {
@@ -530,6 +550,12 @@ const handleLogout = async () => {
 
   .logo {
     font-size: 18px;
+    gap: 8px;
+  }
+
+  .brand-logo {
+    width: 24px;
+    height: 24px;
   }
 
   .nav-menu,
