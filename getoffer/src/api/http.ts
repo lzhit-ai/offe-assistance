@@ -9,7 +9,7 @@ interface ErrorPayload {
 }
 
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 10000,
 })
 
@@ -20,7 +20,7 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     if (typeof config.headers.set === 'function') {
       config.headers.set('Authorization', `Bearer ${token}`)
     } else {
-      ;(config.headers as unknown as Record<string, string>).Authorization = `Bearer ${token}`
+      ; (config.headers as unknown as Record<string, string>).Authorization = `Bearer ${token}`
     }
   }
 

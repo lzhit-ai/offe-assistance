@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isLogin ? '登录' : '注册'"
+    :title="currentIsLogin ? '登录' : '注册'"
     width="400px"
   >
     <el-form
@@ -14,7 +14,7 @@
         <el-input v-model="form.username" placeholder="请输入用户名" />
       </el-form-item>
 
-      <el-form-item v-if="!isLogin" label="手机号" prop="phone">
+      <el-form-item v-if="!currentIsLogin" label="手机号" prop="phone">
         <el-input v-model="form.phone" placeholder="请输入手机号" />
       </el-form-item>
 
@@ -27,7 +27,7 @@
         />
       </el-form-item>
 
-      <el-form-item v-if="!isLogin" label="确认密码" prop="confirmPassword">
+      <el-form-item v-if="!currentIsLogin" label="确认密码" prop="confirmPassword">
         <el-input
           v-model="form.confirmPassword"
           type="password"
@@ -38,12 +38,23 @@
     </el-form>
 
     <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="loading">
-          {{ isLogin ? '登录' : '注册' }}
-        </el-button>
-      </span>
+      <div class="dialog-footer-wrap">
+        <div v-if="currentIsLogin" class="dialog-switch-text">
+          <span>还没有账号？</span>
+          <el-button link type="primary" @click="switchMode(false)">立即注册</el-button>
+        </div>
+        <div v-else class="dialog-switch-text">
+          <span>已有账号？</span>
+          <el-button link type="primary" @click="switchMode(true)">立即登录</el-button>
+        </div>
+
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="loading">
+            {{ currentIsLogin ? '登录' : '注册' }}
+          </el-button>
+        </span>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -68,6 +79,7 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'login-success'])
 
 const dialogVisible = ref(props.visible)
+const currentIsLogin = ref(props.isLogin)
 const loading = ref(false)
 const formRef = ref()
 const userStore = useUserStore()
@@ -92,7 +104,7 @@ const rules = computed(() => ({
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 3, max: 20, message: '用户名长度需在 3 到 20 之间', trigger: 'blur' },
   ],
-  phone: props.isLogin
+  phone: currentIsLogin.value
     ? []
     : [
         { required: true, message: '请输入手机号', trigger: 'blur' },
@@ -102,7 +114,7 @@ const rules = computed(() => ({
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度至少 6 位', trigger: 'blur' },
   ],
-  confirmPassword: props.isLogin
+  confirmPassword: currentIsLogin.value
     ? []
     : [
         { required: true, message: '请确认密码', trigger: 'blur' },
@@ -126,6 +138,13 @@ watch(
   },
 )
 
+watch(
+  () => props.isLogin,
+  (value) => {
+    currentIsLogin.value = value
+  },
+)
+
 watch(dialogVisible, (value) => {
   emit('update:visible', value)
   if (!value) {
@@ -133,19 +152,20 @@ watch(dialogVisible, (value) => {
   }
 })
 
-watch(
-  () => props.isLogin,
-  () => {
-    resetForm()
-  },
-)
+watch(currentIsLogin, () => {
+  resetForm()
+})
+
+const switchMode = (isLogin) => {
+  currentIsLogin.value = isLogin
+}
 
 const handleSubmit = async () => {
   try {
     await formRef.value.validate()
     loading.value = true
 
-    const response = props.isLogin
+    const response = currentIsLogin.value
       ? await authApi.login({
           username: form.username,
           password: form.password,
@@ -157,11 +177,11 @@ const handleSubmit = async () => {
         })
 
     userStore.login(response.data.accessToken, response.data.user)
-    ElMessage.success(props.isLogin ? '登录成功' : '注册成功')
+    ElMessage.success(currentIsLogin.value ? '登录成功' : '注册成功')
     dialogVisible.value = false
     emit('login-success', response.data.user)
   } catch (error) {
-    ElMessage.error(error.message || (props.isLogin ? '登录失败' : '注册失败'))
+    ElMessage.error(error.message || (currentIsLogin.value ? '登录失败' : '注册失败'))
   } finally {
     loading.value = false
   }
@@ -169,10 +189,36 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.dialog-footer {
+.dialog-footer-wrap {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialog-switch-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .dialog-footer-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dialog-footer {
+    width: 100%;
+  }
 }
 </style>

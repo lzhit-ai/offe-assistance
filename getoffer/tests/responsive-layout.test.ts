@@ -7,6 +7,7 @@ const navbarSource = readFileSync(resolve(process.cwd(), 'src/components/Navbar.
 const homeSource = readFileSync(resolve(process.cwd(), 'src/views/Home.vue'), 'utf8')
 const articleListSource = readFileSync(resolve(process.cwd(), 'src/views/ArticleList.vue'), 'utf8')
 const favoritesSource = readFileSync(resolve(process.cwd(), 'src/views/Favorites.vue'), 'utf8')
+const aiSource = readFileSync(resolve(process.cwd(), 'src/views/Ai.vue'), 'utf8')
 const mobileCategoryDrawerPath = resolve(process.cwd(), 'src/components/MobileCategoryDrawer.vue')
 
 test('tablet breakpoint hides the right hot panel before collapsing the navbar', () => {
@@ -48,4 +49,13 @@ test('mobile category drawer reuses metadata-driven categories and hot tags', ()
   assert.match(mobileCategoryDrawerSource, /visibleCategories/)
   assert.match(mobileCategoryDrawerSource, /visibleTags/)
   assert.match(mobileCategoryDrawerSource, /selectTag/)
+})
+
+test('ai page collapses session history into a drawer at 1024px and below', () => {
+  assert.match(aiSource, /historyDrawerVisible/)
+  assert.match(aiSource, /history-trigger/)
+  assert.match(aiSource, /mobile-ai-history-drawer/)
+  assert.match(aiSource, /desktop-ai-sidebar/)
+  assert.match(aiSource, /@media \(max-width: 1024px\)/)
+  assert.match(aiSource, /direction="ltr"/)
 })

@@ -4,6 +4,7 @@
 
     <div class="ai-shell" :style="layoutVars">
       <AiSidebar
+        class="desktop-ai-sidebar"
         :sessions="sessions"
         :active-session-id="currentSessionId"
         :loading="loadingSessions"
@@ -15,7 +16,12 @@
 
       <section class="chat-panel">
         <header class="chat-header">
-          <h1>{{ currentSession?.title || '新对话' }}</h1>
+          <div class="chat-header-main">
+            <el-button class="history-trigger" round @click="historyDrawerVisible = true">
+              会话历史
+            </el-button>
+            <h1>{{ currentSession?.title || '新对话' }}</h1>
+          </div>
         </header>
 
         <div class="chat-body">
@@ -86,6 +92,25 @@
         </footer>
       </section>
     </div>
+
+    <el-drawer
+      v-model="historyDrawerVisible"
+      direction="ltr"
+      size="320px"
+      class="mobile-ai-history-drawer"
+      title="会话历史"
+    >
+      <AiSidebar
+        class="mobile-ai-sidebar"
+        :sessions="sessions"
+        :active-session-id="currentSessionId"
+        :loading="loadingSessions"
+        :creating="creatingSession"
+        @create="handleDrawerCreateSession"
+        @select="handleDrawerSelectSession"
+        @delete="handleDrawerDeleteSession"
+      />
+    </el-drawer>
   </div>
 </template>
 
@@ -111,6 +136,7 @@ const creatingSession = ref(false)
 const sending = ref(false)
 const chatScrollRef = ref(null)
 const streamController = ref(null)
+const historyDrawerVisible = ref(false)
 
 const currentSession = computed(() =>
   sessions.value.find((session) => session.id === currentSessionId.value) || null,
@@ -296,6 +322,24 @@ const handleDeleteSession = async (sessionId) => {
   }
 }
 
+const handleDrawerCreateSession = async () => {
+  await handleCreateSession()
+  historyDrawerVisible.value = false
+}
+
+const handleDrawerSelectSession = async (sessionId) => {
+  await handleSelectSession(sessionId)
+  historyDrawerVisible.value = false
+}
+
+const handleDrawerDeleteSession = async (sessionId) => {
+  await handleDeleteSession(sessionId)
+
+  if (!sessions.value.length) {
+    historyDrawerVisible.value = false
+  }
+}
+
 const handleSend = async () => {
   const content = draft.value.trim()
 
@@ -426,6 +470,20 @@ onUnmounted(() => {
   padding: 22px 34px 10px;
 }
 
+.chat-header-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.history-trigger {
+  display: none;
+  border-color: #dbe3f1;
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
 .chat-header h1 {
   margin: 0;
   font-size: 24px;
@@ -548,7 +606,7 @@ onUnmounted(() => {
   padding: 0;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1024px) {
   .ai-shell {
     grid-template-columns: 1fr;
     height: auto;
@@ -556,6 +614,33 @@ onUnmounted(() => {
 
   .chat-panel {
     min-height: 640px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .ai-shell {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .desktop-ai-sidebar {
+    display: none;
+  }
+
+  .history-trigger {
+    display: inline-flex;
+  }
+
+  .chat-header {
+    padding: 18px 20px 8px;
+  }
+
+  .chat-header-main {
+    flex-wrap: wrap;
+  }
+
+  .chat-panel {
+    min-height: calc(100vh - 120px);
   }
 }
 
@@ -581,5 +666,15 @@ onUnmounted(() => {
     padding: 12px;
     border-radius: 22px;
   }
+}
+
+:deep(.mobile-ai-history-drawer .el-drawer__body) {
+  padding: 0;
+}
+
+.mobile-ai-sidebar {
+  height: 100%;
+  min-height: 100%;
+  border-right: none;
 }
 </style>
